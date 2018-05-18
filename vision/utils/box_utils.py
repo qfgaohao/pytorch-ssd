@@ -207,17 +207,15 @@ def hard_negative_mining(loss, labels, neg_pos_ratio):
 
 
 def center_form_to_corner_form(locations):
-    boxes = torch.zeros_like(locations)
-    boxes[..., :2] = locations[..., :2] - locations[..., 2:] / 2
-    boxes[..., 2:] = locations[..., :2] + locations[..., 2:] / 2
-    return boxes
+    return torch.cat([locations[..., :2] - locations[..., 2:]/2,
+                     locations[..., :2] + locations[..., 2:]/2], locations.dim() - 1) 
 
 
 def corner_form_to_center_form(boxes):
-    locations = torch.zeros_like(boxes)
-    locations[..., :2] = (boxes[..., :2] + boxes[..., 2:]) / 2
-    locations[..., 2:] = boxes[..., 2:] - boxes[..., :2]
-    return locations
+    return torch.cat([
+        (boxes[..., :2] + boxes[..., 2:]) / 2,
+         boxes[..., 2:] - boxes[..., :2]
+    ], boxes.dim() - 1)
 
 
 def non_maximum_suppression(scores, boxes, iou_threshold, top_k=-1):
