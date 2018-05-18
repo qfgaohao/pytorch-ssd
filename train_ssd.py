@@ -80,7 +80,7 @@ def train(loader, net, criterion, optimizer, device, debug_steps=100):
         running_loss += loss.item()
         running_regression_loss += regression_loss.item()
         running_classification_loss += classification_loss.item()
-        if i % debug_steps == 0:
+        if i and i % debug_steps == 0:
             logging.info(
                 "Step: {}, Average Loss: {:.4f}, Average Regression Loss {:.4f}, Average Classification Loss: {:.4f}".format(
                     i,
