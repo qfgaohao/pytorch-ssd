@@ -129,8 +129,10 @@ if __name__ == '__main__':
     net = create_vgg_ssd(len(class_names))
     timer.start("Load Model")
     if args.resume:
+        logging.info(f"Resume from model {args.resume}")
         net.load(args.resume)
     elif args.base_net:
+        logging.info(f"Init from base net {args.args.base_net}")
         net.init_from_base_net(args.base_net)
     logging.info(f'It took {timer.end("Load Model")} seconds to load the model.')
 
