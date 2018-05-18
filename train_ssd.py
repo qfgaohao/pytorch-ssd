@@ -42,6 +42,8 @@ parser.add_argument('--batch_size', default=32, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=120, type=int,
                     help='the number epochs')
+parser.add_argument('--last_epoch', default=-1, type=int,
+                    help='the epoch num of the checkpoint.')
 parser.add_argument('--num_workers', default=4, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--validation_epochs', default=5, type=int,
@@ -140,7 +142,8 @@ if __name__ == '__main__':
                              center_variance=0.1, size_variance=0.2, device=DEVICE)
     optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[80, 100], gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[80, 100],
+                                                     gamma=0.1, last_epoch=args.last_epoch)
 
     train_transform = TrainAugmentation(config.image_size, config.image_mean)
     target_transform = MatchPrior(config.priors, config.center_variance,
@@ -168,7 +171,7 @@ if __name__ == '__main__':
                             shuffle=False)
     logging.info("Start training.")
     min_loss = 100000.0
-    for epoch in range(args.num_epochs):
+    for epoch in range(args.last_epoch + 1, args.num_epochs):
         scheduler.step()
         train(train_loader, net, criterion, optimizer,
               device=DEVICE, debug_steps=args.debug_steps)
