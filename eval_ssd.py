@@ -17,6 +17,7 @@ parser.add_argument("--iou_threshold", type=float, default=0.5, help="The thresh
 parser.add_argument("--eval_dir", type=str, help="The directory to store evaluation results.")
 
 args = parser.parse_args()
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
 
 
 def group_annotation_by_class(dataset):
@@ -112,8 +113,9 @@ if __name__ == '__main__':
     net = create_vgg_ssd(len(class_names))
     timer.start("Load Model")
     net.load(args.trained_model)
+    net = net.to(DEVICE)
     print(f'It took {timer.end("Load Model")} seconds to load the model.')
-    predictor = create_vgg_ssd_predictor(net)
+    predictor = create_vgg_ssd_predictor(net, DEVICE)
 
     results = []
     for i in range(len(dataset)):
