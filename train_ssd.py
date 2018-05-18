@@ -60,15 +60,15 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda el
 
 
 def train(loader, net, criterion, optimizer, device, debug_steps=100):
-    net.train()
+    net.train(True)
     running_loss = 0.0
     running_regression_loss = 0.0
     running_classification_loss = 0.0
     for i, data in enumerate(loader):
         images, boxes, labels = data
-        images.to(device)
-        boxes.to(device)
-        labels.to(device)
+        images = images.to(device)
+        boxes = boxes.to(device)
+        labels = labels.to(device)
 
         optimizer.zero_grad()
         confidence, locations = net(images)
@@ -101,9 +101,9 @@ def test(loader, net, criterion, device):
     num = 0
     for _, data in enumerate(loader):
         images, boxes, labels = data
-        images.to(device)
-        boxes.to(device)
-        labels.to(device)
+        images = images.to(device)
+        boxes = boxes.to(device)
+        labels = labels.to(device)
         num += 1
 
         with torch.no_grad():
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     if args.use_cuda and torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    net.to(DEVICE)
+    net = net.to(DEVICE)
 
     criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
                              center_variance=0.1, size_variance=0.2, device=DEVICE)
