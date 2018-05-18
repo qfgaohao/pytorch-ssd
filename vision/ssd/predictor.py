@@ -25,6 +25,7 @@ class Predictor:
 
     # TODO: SUPPORT MULTIPLE IMAGES
     def predict(self, image, top_k=-1, prob_threshold=None):
+        cpu_device = torch.device("cpu")
         height, width, _ = image.shape
         image = self.transform(image)
         images = image.unsqueeze(0)
@@ -44,6 +45,9 @@ class Predictor:
         picked_labels = []
         if not prob_threshold:
             prob_threshold = self.filter_threshold
+        # this version of nms is slower on GPU, so we move data to CPU.
+        boxes = boxes.to(cpu_device)
+        softmax = softmax.to(cpu_device)
 
         for class_index in range(1, softmax.size(1)):
             probs = softmax[:, class_index]
