@@ -14,7 +14,7 @@ parser.add_argument("--dataset", type=str, help="The root directory of the VOC d
 parser.add_argument("--use_cuda", type=str2bool, default=True)
 parser.add_argument("--use_2007_metric", type=str2bool, default=True)
 parser.add_argument("--iou_threshold", type=float, default=0.5, help="The threshold of Intersection over Union.")
-parser.add_argument("--eval_dir", type=str, help="The directory to store evaluation results.")
+parser.add_argument("--eval_dir", default="eval_results", type=str, help="The directory to store evaluation results.")
 
 args = parser.parse_args()
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
