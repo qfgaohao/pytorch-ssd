@@ -60,7 +60,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda el
 
 
 def train(loader, net, criterion, optimizer, device, debug_steps=100):
-    net.train(True)
+    net.train()
     running_loss = 0.0
     running_regression_loss = 0.0
     running_classification_loss = 0.0
