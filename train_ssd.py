@@ -171,7 +171,7 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dataset, args.batch_size,
                             num_workers=args.num_workers,
                             shuffle=False)
-    logging.info("Start training.")
+    logging.info(f"Start training from epoch {args.last_epoch + 1}.")
     min_loss = 100000.0
     for epoch in range(args.last_epoch + 1, args.num_epochs):
         scheduler.step()
