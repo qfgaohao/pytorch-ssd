@@ -32,7 +32,7 @@ parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
 
 # Params for loading pretrained basenet or checkpoints.
-parser.add_argument('--base_net', default='weights/vgg16_reducedfc.pth',
+parser.add_argument('--base_net', default='models/vgg16_reducedfc.pth',
                     help='Pretrained base model')
 parser.add_argument('--resume', default=None, type=str,
                     help='Checkpoint state_dict file to resume training from')
@@ -51,7 +51,7 @@ parser.add_argument('--debug_steps', default=100, type=int,
 parser.add_argument('--use_cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
 
-parser.add_argument('--checkpoint_folder', default='weights/',
+parser.add_argument('--checkpoint_folder', default='models/',
                     help='Directory for saving checkpoint models')
 
 
