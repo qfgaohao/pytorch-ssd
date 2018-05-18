@@ -170,8 +170,8 @@ if __name__ == '__main__':
     min_loss = 100000.0
     for epoch in range(args.num_epochs):
         scheduler.step()
-        train(train_loader, net, criterion, optimizer, device=DEVICE,
-              batch_size=args.batch_size, debug_steps=args.debug_steps)
+        train(train_loader, net, criterion, optimizer,
+              device=DEVICE, debug_steps=args.debug_steps)
         logging.info("save model.")
         torch.save(
             net.state_dict(),
