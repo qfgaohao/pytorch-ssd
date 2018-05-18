@@ -9,11 +9,10 @@ from ..utils import box_utils
 class MultiboxLoss(nn.Module):
     def __init__(self, priors, iou_threshold, neg_pos_ratio,
                  center_variance, size_variance, device):
-        """Compose a SSD model using the given components.
+        """Implement SSD Multibox Loss.
 
-        The features, used as the basenet, need to be initialized from a pretrained
-        model, while The extra layers and header will be intialized using Xavier in
-        this class.
+        Basically, Multibox loss combines classification loss
+         and Smooth L1 regression loss.
         """
         super(MultiboxLoss, self).__init__()
         self.iou_threshold = iou_threshold
