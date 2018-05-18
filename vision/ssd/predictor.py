@@ -7,13 +7,14 @@ from .data_preprocessing import PredictionTransform
 
 class Predictor:
     def __init__(self, net, size, mean, priors, center_variance, size_variance,
-                 iou_threshold, filter_threshold=0.01, device=None):
+                 iou_threshold, filter_threshold=0.01, candidate_size=200, device=None):
         self.net = net
         self.transform = PredictionTransform(size, mean)
         self.center_variance = center_variance
         self.size_variance = size_variance
         self.iou_threshold = iou_threshold
         self.filter_threshold = filter_threshold
+        self.candidate_size = candidate_size
         if device:
             self.device = device
         else:
@@ -56,7 +57,7 @@ class Predictor:
             if probs.size(0) == 0:
                 continue
             subset_boxes = boxes[mask, :]
-            picked = box_utils.non_maximum_suppression(probs, subset_boxes, self.iou_threshold, top_k)
+            picked = box_utils.non_maximum_suppression(probs, subset_boxes, self.iou_threshold, top_k, self.candidate_size)
             probs = probs[picked]
             subset_boxes = subset_boxes[picked, :]
             picked_boxes.append(subset_boxes)

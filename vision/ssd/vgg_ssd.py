@@ -91,8 +91,8 @@ def create_vgg_ssd(num_classes):
                extras, classification_headers, regression_headers)
 
 
-def create_vgg_ssd_predictor(net, device=torch.device('cpu')):
+def create_vgg_ssd_predictor(net, candidate_size=200, device=torch.device('cpu')):
     predictor = Predictor(net, config.image_size, config.image_mean, config.priors,
                           config.center_variance, config.size_variance,
-                          config.iou_threshold, device=device)
+                          config.iou_threshold, candidate_size=candidate_size, device=device)
     return predictor

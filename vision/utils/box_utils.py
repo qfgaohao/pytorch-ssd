@@ -218,7 +218,7 @@ def corner_form_to_center_form(boxes):
     ], boxes.dim() - 1)
 
 
-def non_maximum_suppression(scores, boxes, iou_threshold, top_k=-1):
+def non_maximum_suppression(scores, boxes, iou_threshold, top_k=-1, candidate_size=200):
     """
 
     Args:
@@ -226,15 +226,17 @@ def non_maximum_suppression(scores, boxes, iou_threshold, top_k=-1):
         boxes (N, 4): boxes in corner-form
         iou_threshold: intersection over union threshold.
         top_k: keep top_k results. If k <= 0, keep all the results.
+        candidate_size: only consider the candidates with the highest scores.
     Returns:
          picked: a list of indexes of the kept boxes
     """
     picked = []
-    sorted_scores, indexes = scores.sort(descending=True)
-    while len(indexes) > 1:
+    _, indexes = scores.sort(descending=True)
+    indexes = indexes[:candidate_size]
+    while len(indexes) > 0:
         current = indexes[0]
         picked.append(current.item())
-        if 0 < top_k == len(picked):
+        if 0 < top_k == len(picked) or len(indexes) == 1:
             return picked
 
         current_box = boxes[current, :]
@@ -245,6 +247,5 @@ def non_maximum_suppression(scores, boxes, iou_threshold, top_k=-1):
             current_box.unsqueeze(0),
         )
         indexes = indexes[iou <= iou_threshold]
-    if len(indexes) == 1:
-        picked.append(indexes[0].item())
+
     return picked
