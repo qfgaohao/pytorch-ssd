@@ -40,13 +40,13 @@ parser.add_argument('--resume', default=None, type=str,
 # Train params
 parser.add_argument('--batch_size', default=32, type=int,
                     help='Batch size for training')
-parser.add_argument('--num_epochs', default=10, type=int,
+parser.add_argument('--num_epochs', default=150, type=int,
                     help='the number epochs')
 parser.add_argument('--num_workers', default=4, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--validation_epochs', default=5, type=int,
                     help='the number epochs')
-parser.add_argument('--debug_steps', default=100, type=int,
+parser.add_argument('--debug_steps', default=200, type=int,
                     help='Set the debug log output frequency.')
 parser.add_argument('--use_cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
@@ -172,13 +172,7 @@ if __name__ == '__main__':
         scheduler.step()
         train(train_loader, net, criterion, optimizer,
               device=DEVICE, debug_steps=args.debug_steps)
-        logging.info("save model.")
-        torch.save(
-            net.state_dict(),
-            os.path.join(
-                args.checkpoint_folder, "vgg-ssd-epoch-{}-loss-{:.4f}.pth".format(epoch, epoch)
-            )
-        )
+
         if epoch % args.validation_epochs == 0:
             val_loss, val_regression_loss, val_classification_loss = test(val_loader, net, criterion, DEVICE)
             logging.info("Epoch: {}, Validation Loss: {:.4f}, Validation Regression Loss {:.4f}, Validation Classification Loss: {:.4f}".format(
@@ -192,6 +186,6 @@ if __name__ == '__main__':
                 torch.save(
                     net.state_dict(),
                     os.path.join(
-                        args.checkpoint_folder, "VGG-SSD-Epoch-{}-Loss-{:.4f}".format(epoch, val_loss)
+                        args.checkpoint_folder, "VGG-SSD-Epoch-{}-Loss-{:.4f}.pth".format(epoch, val_loss)
                     )
                 )
