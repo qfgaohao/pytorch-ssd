@@ -163,11 +163,8 @@ def assign_priors(gt_boxes, gt_labels, corner_form_priors,
         boxes (num_priors, 4): real values for priors.
         labels (num_priros): labels for priors.
     """
-    num_priors = corner_form_priors.size(0)
-    num_targets = gt_labels.size(0)
-    expanded_gt_boxes = gt_boxes.unsqueeze(0).expand(num_priors, num_targets, 4).reshape(-1, 4)
-    corner_form_priors = corner_form_priors.unsqueeze(1).expand(num_priors, num_targets, 4).reshape(-1, 4)
-    ious = iou_of(expanded_gt_boxes, corner_form_priors).reshape(num_priors, num_targets)
+    # size: num_priors x num_targets
+    ious = iou_of(gt_boxes.unsqueeze(0), corner_form_priors.unsqueeze(1))
     # size: num_priors
     best_target_per_prior, best_target_per_prior_index = ious.max(1)
     # size: num_targets
