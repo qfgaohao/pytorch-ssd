@@ -115,7 +115,7 @@ if __name__ == '__main__':
     net.load(args.trained_model)
     net = net.to(DEVICE)
     print(f'It took {timer.end("Load Model")} seconds to load the model.')
-    predictor = create_vgg_ssd_predictor(net, DEVICE)
+    predictor = create_vgg_ssd_predictor(net, device=DEVICE)
 
     results = []
     for i in range(len(dataset)):
