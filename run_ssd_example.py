@@ -6,27 +6,39 @@ import sys
 import numpy as np
 
 
+if len(sys.argv) < 4:
+    print('Usage: python <model path> <nms method> <image Path> [number for the times you test to run.]')
+    sys.exit(0)
+
 model_path = sys.argv[1]
-image_path = sys.argv[2]
+nms_method = sys.argv[2]
+image_path = sys.argv[3]
+output_path = image_path + "-output.jpg"
+
+
+if len(sys.argv) >= 5:
+    times = int(sys.argv[4])
+else:
+    times = 1
 
 num_classes = len(voc_dataset.class_names)
 net = create_vgg_ssd(num_classes)
 net.load(model_path)
-predictor = create_vgg_ssd_predictor(net, candidate_size=200)
-image = cv2.imread(image_path)
-image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+predictor = create_vgg_ssd_predictor(net, candidate_size=200, nms_method=nms_method)
+orig_image = cv2.imread(image_path)
+image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
 timer = Timer()
-times = []
-for i in range(10):
+intervals = []
+for i in range(times):
     timer.start()
     boxes, labels, probs = predictor.predict(image, 10, 0.4)
-    times.append(timer.end())
-times = np.array(times)
-print(f"Ran {len(times)} times.Mean time: {times.mean()}, Max time: {times.max()}, Min time: {times.min()}")
+    intervals.append(timer.end())
+intervals = np.array(intervals)
+print(f"Ran {len(intervals)} times.Mean time: {intervals.mean()}, Max time: {intervals.max()}, Min time: {intervals.min()}")
 print([voc_dataset.class_names[i] for i in labels])
 print(probs)
 print(boxes)
 for i in range(boxes.size(0)):
     box = boxes[i, :]
-    cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
-cv2.imwrite("detected.jpg", image)
+    cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
+cv2.imwrite(output_path, orig_image)
