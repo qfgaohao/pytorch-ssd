@@ -41,4 +41,11 @@ print(boxes)
 for i in range(boxes.size(0)):
     box = boxes[i, :]
     cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
+    label = voc_dataset.class_names[labels[i]]
+    cv2.putText(orig_image, label,
+                (box[0] + 20, box[1] + 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,  # font scale
+                (255, 0, 255),
+                2)  # line type
 cv2.imwrite(output_path, orig_image)
