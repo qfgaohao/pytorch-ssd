@@ -13,7 +13,7 @@ if len(sys.argv) < 4:
 model_path = sys.argv[1]
 nms_method = sys.argv[2]
 image_path = sys.argv[3]
-output_path = image_path + "-output.jpg"
+output_path = "annotated-output.jpg"
 
 
 if len(sys.argv) >= 5:
