@@ -3,7 +3,7 @@
 This repo aims to implement object detection and some other common computer vision algorithms.
 The design goal is modularity and extensibility.
 
-Currently, it only implements SSD.
+Currently, it only implements [SSD (Single Shot MultiBox Detector)](https://arxiv.org/abs/1512.02325).
 
 
 ## Dependencies
