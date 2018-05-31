@@ -20,6 +20,7 @@ class ModelPrunner:
         self.batch_norms = {}
         self.last_conv = None
         self.convs = {}
+        self.linears = {}
 
     def _make_new_conv(self, conv, filter_index, channel_type="out"):
         if not isinstance(conv, nn.Conv2d):
@@ -83,7 +84,7 @@ class ModelPrunner:
             next_parent._modules[next_path[-1]] = new_next_conv
             self.book.update(next_path, new_next_conv)
 
-        # reduce the out channels of batch norm
+        # reduce the num_features of batch norm
         batch_norm = self.batch_norms.get(conv)
         if batch_norm:
             new_batch_norm = nn.BatchNorm2d(batch_norm.num_features - 1)
@@ -91,6 +92,34 @@ class ModelPrunner:
             batch_norm_parent = self.book.get_module(batch_norm_path[:-1])
             batch_norm_parent._modules[batch_norm_path[-1]] = new_batch_norm
             self.book.update(batch_norm_path, new_batch_norm)
+
+        # reduce the in channels of linear layer
+        linear = self.linears.get(conv)
+        if linear:
+            new_linear = self._make_new_linear(conv, linear, filter_index)
+            linear_path = self.book.get_path(linear)
+            linear_parent = self.book.get_module(linear_path[:-1])
+            linear_parent._modules[linear_path[-1]] = new_linear
+            self.book.update(linear_path, new_linear)
+
+    def _make_new_linear(self, conv, linear, filter_index):
+        block = int(linear.in_features / conv.out_channels)
+        new_linear = nn.Linear(linear.in_features - block, linear.out_features,
+                               bias=linear.bias is not None)
+        if filter_index == 0:
+            new_linear.weight.data = linear.weight.data[:, block:]
+        elif filter_index == conv.out_channels - 1:
+            new_linear.weight.data = linear.weight.data[:, :-block]
+        else:
+            start_index = filter_index * block
+            end_index = (filter_index + 1) * block
+            new_linear.weight.data = torch.cat([
+                linear.weight.data[:, :start_index],
+                linear.weight.data[:, end_index:]
+            ], dim=1)
+        if linear.bias is not None:
+            new_linear.bias.data = linear.bias.data
+        return new_linear
 
     def prune(self, ignored_paths=[]):
         """Prune one conv2d filter.
@@ -120,6 +149,7 @@ class ModelPrunner:
         self.last_conv = None
         self.batch_norms.clear()
         self.convs.clear()
+        self.linears.clear()
 
         def forward_hook(m, input, output):
             if isinstance(m, nn.Conv2d):
@@ -131,11 +161,15 @@ class ModelPrunner:
             elif isinstance(m, nn.BatchNorm2d):
                 if self.last_conv:
                     self.batch_norms[self.last_conv] = m
+            elif isinstance(m, nn.Linear):
+                if self.last_conv:
+                    self.linears[self.last_conv] = m
+                self.last_conv = None  # after a linear layer the conv layer doesn't matter
 
         def backward_hook(m, input, output):
             self.grads[m] = output[0]
 
-        for path, m in self.book.modules(module_type=(nn.Conv2d, nn.BatchNorm2d)):
+        for path, m in self.book.modules(module_type=(nn.Conv2d, nn.BatchNorm2d, nn.Linear)):
             h = m.register_forward_hook(forward_hook)
             self.handles.append(h)
             h = m.register_backward_hook(backward_hook)

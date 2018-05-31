@@ -9,6 +9,8 @@ import sys
 
 from vision.prunning.prunner import ModelPrunner
 from vision.utils.misc import str2bool
+from vision.nn.alexnet import alexnet
+
 
 parser = argparse.ArgumentParser(description='Demonstration of Pruning AlexNet')
 
@@ -138,7 +140,7 @@ if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    net = models.alexnet(True)
+    net = alexnet(True)
     net.classifier = nn.Sequential(
             nn.Dropout(),
             nn.Linear(256 * 6 * 6, 4096),
@@ -183,7 +185,7 @@ if __name__ == '__main__':
         logging.info(f"Number of filters to prune: {prune_num_filters}")
         for i in range(prune_num_filters):
             print('Prune Iteration:', i)
-            prunner.prune([("features", "10")])
+            prunner.prune()
             val_loss, val_accuracy = eval(prunner.model, val_loader)
             logging.info(f"Prune Iteration: {i}. After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
             val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
