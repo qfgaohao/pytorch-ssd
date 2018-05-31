@@ -6,14 +6,16 @@ from ..utils.model_book import ModelBook
 
 
 class ModelPrunner:
-    def __init__(self, model, train_fun):
+    def __init__(self, model, train_fun, ignored_paths=[]):
         """ Implement the pruning algorithm described in the paper https://arxiv.org/pdf/1611.06440.pdf .
 
         The prunning criteria is dC/dh * h, while C is the cost, h is the activation.
         """
         self.model = model
         self.train_fun = train_fun
+        self.ignored_paths = ignored_paths
         self.book = ModelBook(self.model)
+        self.ignored_modules = set(self.book.get_module(path) for path in ignored_paths)
         self.outputs = {}
         self.grads = {}
         self.handles = []
@@ -21,6 +23,7 @@ class ModelPrunner:
         self.last_conv = None
         self.convs = {}
         self.linears = {}
+        self.last_linear = None
 
     def _make_new_conv(self, conv, filter_index, channel_type="out"):
         if not isinstance(conv, nn.Conv2d):
@@ -96,35 +99,62 @@ class ModelPrunner:
         # reduce the in channels of linear layer
         linear = self.linears.get(conv)
         if linear:
-            new_linear = self._make_new_linear(conv, linear, filter_index)
+            new_linear = self._make_new_linear(linear, filter_index, conv, channel_type="in")
             linear_path = self.book.get_path(linear)
             linear_parent = self.book.get_module(linear_path[:-1])
             linear_parent._modules[linear_path[-1]] = new_linear
             self.book.update(linear_path, new_linear)
 
-    def _make_new_linear(self, conv, linear, filter_index):
-        block = int(linear.in_features / conv.out_channels)
-        new_linear = nn.Linear(linear.in_features - block, linear.out_features,
-                               bias=linear.bias is not None)
-        if filter_index == 0:
-            new_linear.weight.data = linear.weight.data[:, block:]
-        elif filter_index == conv.out_channels - 1:
-            new_linear.weight.data = linear.weight.data[:, :-block]
+    def _make_new_linear(self, linear, filter_index, conv=None, channel_type="out"):
+        if channel_type == "out":
+            new_linear = nn.Linear(linear.in_features, linear.out_features - 1,
+                                   bias=linear.bias is not None)
+            if filter_index == 0:
+                new_linear.weight.data = linear.weight.data[1:]
+                if linear.bias is not None:
+                    new_linear.bias.data = linear.bias.data[1:]
+            elif filter_index == linear.out_features - 1:
+                new_linear.weight.data = linear.weight.data[:-1]
+                if linear.bias is not None:
+                    new_linear.bias.data = linear.bias.data[:-1]
+            else:
+                new_linear.weight.data = torch.cat([
+                    linear.weight.data[:filter_index],
+                    linear.weight.data[filter_index + 1:]
+                ])
+                if linear.bias is not None:
+                    new_linear.bias.data = torch.cat([
+                        linear.bias.data[:filter_index],
+                        linear.bias.data[filter_index+1:]
+                    ])
+        elif channel_type == "in":
+            if conv:
+                block = int(linear.in_features / conv.out_channels)
+            else:
+                block = 1
+            new_linear = nn.Linear(linear.in_features - block, linear.out_features,
+                                   bias=linear.bias is not None)
+            if filter_index == 0:
+                new_linear.weight.data = linear.weight.data[:, block:]
+            elif (conv and filter_index == conv.out_channels - 1) or (not conv and filter_index == linear.in_features - 1):
+                new_linear.weight.data = linear.weight.data[:, :-block]
+            else:
+                start_index = filter_index * block
+                end_index = (filter_index + 1) * block
+                new_linear.weight.data = torch.cat([
+                    linear.weight.data[:, :start_index],
+                    linear.weight.data[:, end_index:]
+                ], dim=1)
+            if linear.bias is not None:
+                new_linear.bias.data = linear.bias.data
         else:
-            start_index = filter_index * block
-            end_index = (filter_index + 1) * block
-            new_linear.weight.data = torch.cat([
-                linear.weight.data[:, :start_index],
-                linear.weight.data[:, end_index:]
-            ], dim=1)
-        if linear.bias is not None:
-            new_linear.bias.data = linear.bias.data
+            raise ValueError(f"{channel_type} should be either 'in' or 'out'.")
         return new_linear
 
-    def prune(self, ignored_paths=[]):
+    def prune(self):
         """Prune one conv2d filter.
         """
-        self.register_hooks(ignored_paths)
+        self.register_hooks(self.ignored_paths)
         self.train_fun(self.model)
         ranks = []
         for m, output in self.outputs.items():
@@ -142,7 +172,6 @@ class ModelPrunner:
 
     def register_hooks(self, ignored_paths=[]):
         """Run register before training for pruning."""
-        ignored_modules = set(self.book.get_module(path) for path in ignored_paths)
         self.outputs.clear()
         self.grads.clear()
         self.handles.clear()
@@ -153,7 +182,7 @@ class ModelPrunner:
 
         def forward_hook(m, input, output):
             if isinstance(m, nn.Conv2d):
-                if m not in ignored_modules:
+                if m not in self.ignored_modules:
                     self.outputs[m] = output
                 if self.last_conv:
                     self.convs[self.last_conv] = m
@@ -179,3 +208,61 @@ class ModelPrunner:
         """Run degresiter before retraining to recover the model"""
         for handle in self.handles:
             handle.remove()
+
+    def prune_linear_layers(self):
+        self.register_linear_hooks()
+        self.train_fun(self.model)
+        ranks = []
+        for m, output in self.outputs.items():
+            output = output.data
+            grad = self.grads[m].data
+            v = grad * output
+            v = v.sum(0)  # sum to the channel axis.
+            v = torch.abs(v)
+            v = v / torch.sqrt(torch.sum(v * v))  # normalize
+            for i, e in enumerate(v):
+                ranks.append((m, i, e))
+        module, filter_index, value = min(ranks, key=lambda t: t[2])
+        self.remove_linear_filter(module, filter_index)
+        self.deregister_hooks()
+
+    def register_linear_hooks(self):
+        self.outputs.clear()
+        self.grads.clear()
+        self.handles.clear()
+        self.linears.clear()
+        self.last_linear = None
+
+        def forward_hook(m, input, output):
+            if m not in self.ignored_modules:
+                self.outputs[m] = output
+            if self.last_linear:
+                self.linears[self.last_linear] = m
+            self.last_linear = m
+
+        def backward_hook(m, input, output):
+            self.grads[m] = output[0]
+
+        for _, m in self.book.linear_modules():
+            h = m.register_forward_hook(forward_hook)
+            self.handles.append(h)
+            h = m.register_backward_hook(backward_hook)
+            self.handles.append(h)
+
+    def remove_linear_filter(self, linear, filter_index):
+        new_linear = self._make_new_linear(linear, filter_index, channel_type="out")
+        path = self.book.get_path(linear)
+        logging.info(f"Prune Out Feature: {filter_index}, Layer: {linear}, Path {'/'.join(path)}")
+        linear_parent = self.book.get_module(path[:-1])
+        linear_parent._modules[path[-1]] = new_linear
+        self.book.update(path, new_linear)
+
+        # update following linear layers
+        next_linear = self.linears.get(linear)
+        if next_linear:
+            new_next_linear = self._make_new_linear(next_linear, filter_index, channel_type='in')
+            next_path = self.book.get_path(next_linear)
+            logging.info(f"Prune In Feature: {filter_index}, Layer: {next_linear}, Path {'/'.join(next_path)}")
+            next_linear_parent = self.book.get_module(next_path[:-1])
+            next_linear_parent._modules[next_path[-1]] = new_next_linear
+            self.book.update(next_path, new_next_linear)
