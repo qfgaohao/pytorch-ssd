@@ -178,11 +178,18 @@ if __name__ == '__main__':
     elif args.prune:
         net.load_state_dict(torch.load(args.trained_model))
         data_iter = iter(make_prunner_loader(train_dataset))
-        prunner = ModelPrunner(net, lambda model: train_epoch(model, data_iter))
+        prunner = ModelPrunner(net, lambda model: train_epoch(model, data_iter),
+                               ignored_paths=[('classifier', '6')])
         num_filters = prunner.book.num_of_conv2d_filters()
-        logging.info(f"Number of filters: {num_filters}")
+        logging.info(f"Number of Conv2d filters: {num_filters}")
         prune_num_filters = int(2 * num_filters / 3)
-        logging.info(f"Number of filters to prune: {prune_num_filters}")
+        logging.info(f"Number of Conv2d filters to prune: {prune_num_filters}")
+
+        num_linear_filters = prunner.book.num_of_linear_filters()
+        logging.info(f"Number of Linear filters: {num_linear_filters}")
+        prune_num_linear_filters = int(2 * num_linear_filters / 3)
+        logging.info(f"Number of Conv2d filters to prune: {prune_num_linear_filters}")
+
         for i in range(prune_num_filters):
             print('Prune Iteration:', i)
             prunner.prune()
