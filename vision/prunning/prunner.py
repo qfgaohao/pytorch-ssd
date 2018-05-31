@@ -103,6 +103,7 @@ class ModelPrunner:
             grad = self.grads[m].data
             v = grad * output
             v = v.sum(0).sum(1).sum(1)  # sum to the channel axis.
+            v = torch.abs(v)
             v = v / torch.sqrt(torch.sum(v * v))  # normalize
             for i, e in enumerate(v):
                 ranks.append((m, i, e))
