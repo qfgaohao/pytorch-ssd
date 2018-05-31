@@ -184,10 +184,13 @@ if __name__ == '__main__':
         for i in range(prune_num_filters):
             print('Prune Iteration:', i)
             prunner.prune([("features", "10")])
+            val_loss, val_accuracy = eval(prunner.model, val_loader)
+            logging.info(f"Prune Iteration: {i}. After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
             val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
+            logging.info(f"Prune Iteration: {i}. After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
             if i % 20 == 0:
                 with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
                     print(prunner.model, file=f)
-                torch.save(prunner.model.state_dict(), "models/prunned-alexnet-iter-{}-{:.4f}.pth".format(i, val_accuracy))
+                torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-iter-{i}-{val_accuracy:.4f}.pth")
     else:
         logging.fatal("You should specify --prune or --train.")
