@@ -55,6 +55,12 @@ class ModelBook:
     def num_of_linear_modules(self):
         return self.num_of_modules(nn.Linear)
 
+    def num_of_linear_filters(self):
+        num_filters = 0
+        for _, m in self.linear_modules():
+            num_filters += m.out_features
+        return num_filters
+
     def num_of_modules(self, module_type=None):
         num = 0
         for p, m in self._modules.items():
