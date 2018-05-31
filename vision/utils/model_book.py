@@ -49,7 +49,7 @@ class ModelBook:
         """
         num_filters = 0
         for _, m in self.conv2d_modules():
-            num_filters += m.weight.size(0)
+            num_filters += m.out_channels
         return num_filters
 
     def num_of_linear_modules(self):
