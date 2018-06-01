@@ -45,6 +45,8 @@ parser.add_argument('--prune_conv_num', default=1, type=int,
                     help='the number of conv filters you want to prune in very iteration.')
 parser.add_argument('--prune_linear_num', default=10, type=int,
                     help='the number of linear filters you want to prune in very iteration.')
+parser.add_argument('--window', default=10, type=int,
+                    help='Window size for tracking training accuracy.')
 
 parser.add_argument('--use_cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
@@ -198,14 +200,15 @@ if __name__ == '__main__':
         conv_scores = []
         linear_scores = []
         i = 0
+        iteration = 0
         while i < prune_num:
-            logging.info(f"Prune: {i}/{prune_num}")
-            if len(conv_scores) < 5:
+            logging.info(f"Prune: {i}/{prune_num}, Iteration: {iteration}")
+            if len(conv_scores) < args.window:
                 logging.info("Prune Conv Layers.")
                 _, accuracy_gain = prunner.prune_conv_layers(args.prune_conv_num)
                 conv_scores.append(accuracy_gain)
                 i += args.prune_conv_num
-            elif len(linear_scores) < 5:
+            elif len(linear_scores) < args.window:
                 _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
                 linear_scores.append(accuracy_gain)
                 i += args.prune_linear_num
@@ -229,8 +232,11 @@ if __name__ == '__main__':
             logging.info(f"Prune: {i}/{prune_num}, After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
             val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
             logging.info(f"Prune: {i}/{prune_num}, After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
-            with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
-                print(prunner.model, file=f)
-            torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-pruned-{i}-{val_accuracy:.4f}.pth")
+            if iteration % 30 == 0:
+                logging.info(f"Prune: {i}/{prune_num}, Iteration: {iteration}, Save model.")
+                with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
+                    print(prunner.model, file=f)
+                torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-pruned-{i}-{val_accuracy:.4f}.pth")
+            iteration += 1
     else:
         logging.fatal("You should specify --prune or --train.")
