@@ -26,7 +26,7 @@ parser.add_argument('--num_epochs', default=25, type=int,
                     help='number of batches to train')
 parser.add_argument('--num_recovery_batches', default=2, type=int,
                     help='number of batches to train to recover the network')
-parser.add_argument('--recovery_learning_rate', default=1e-4, type=int,
+parser.add_argument('--recovery_learning_rate', default=1e-4, type=float,
                     help='learning rate to recover the network')
 parser.add_argument('--recovery_batch_size', default=32, type=int,
                     help='Batch size for training')
