@@ -108,7 +108,7 @@ class ModelPrunner:
         """Prune one conv2d filter.
         """
         self.register_conv_hooks()
-        self.train_fun(self.model)
+        before_loss, before_accuracy = self.train_fun(self.model)
         ranks = []
         for path, output in self.outputs.items():
             output = output.data
@@ -124,6 +124,8 @@ class ModelPrunner:
         for path, filter_index, value in to_prune:
             self.remove_conv_filter(path, filter_index)
         self.deregister_hooks()
+        after_loss, after_accuracy = self.train_fun(self.model)
+        return after_loss - before_loss, after_accuracy - before_accuracy
 
     def register_conv_hooks(self):
         """Run register before training for pruning."""
@@ -168,7 +170,7 @@ class ModelPrunner:
 
     def prune_linear_layers(self, num=1):
         self.register_linear_hooks()
-        self.train_fun(self.model)
+        before_loss, before_accuracy = self.train_fun(self.model)
         ranks = []
         for path, output in self.outputs.items():
             output = output.data
@@ -184,6 +186,8 @@ class ModelPrunner:
         for path, feature_index, value in to_prune:
             self.remove_linear_feature(path, feature_index)
         self.deregister_hooks()
+        after_loss, after_accuracy = self.train_fun(self.model)
+        return after_loss - before_loss, after_accuracy - before_accuracy
 
     def register_linear_hooks(self):
         self.outputs.clear()

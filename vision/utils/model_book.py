@@ -66,6 +66,7 @@ class ModelBook:
         for p, m in self._modules.items():
             if not module_type or isinstance(m, module_type):
                 num += 1
+        return num
 
     def get_module(self, path):
         return self._modules.get(path)

@@ -40,6 +40,11 @@ parser.add_argument('--weight_decay', default=5e-4, type=float,
 parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
 
+# Params for Pruning
+parser.add_argument('--prune_conv_num', default=1, type=int,
+                    help='the number of conv filters you want to prune in very iteration.')
+parser.add_argument('--prune_linear_num', default=10, type=int,
+                    help='the number of linear filters you want to prune in very iteration.')
 
 parser.add_argument('--use_cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
@@ -70,6 +75,7 @@ def train_epoch(net, data_iter):
     train_loss = loss.item()
     train_accuracy = torch.sum(preds == labels.data).item() / inputs.size(0)
     logging.info('Train Epoch Loss:{:.4f}, Accuracy:{:.4f}'.format(train_loss, train_accuracy))
+    return train_loss, train_accuracy
 
 
 def train(net, train_loader, val_loader, num_epochs, learning_rate, save_model=True):
@@ -179,27 +185,52 @@ if __name__ == '__main__':
         net.load_state_dict(torch.load(args.trained_model))
         data_iter = iter(make_prunner_loader(train_dataset))
         prunner = ModelPrunner(net, lambda model: train_epoch(model, data_iter),
-                               ignored_paths=[('classifier', '6')])
+                               ignored_paths=[('classifier', '6')])  # do not prune the last layer.
         num_filters = prunner.book.num_of_conv2d_filters()
         logging.info(f"Number of Conv2d filters: {num_filters}")
-        prune_num_filters = int(2 * num_filters / 3)
-        logging.info(f"Number of Conv2d filters to prune: {prune_num_filters}")
 
         num_linear_filters = prunner.book.num_of_linear_filters()
         logging.info(f"Number of Linear filters: {num_linear_filters}")
-        prune_num_linear_filters = int(2 * num_linear_filters / 3)
-        logging.info(f"Number of Conv2d filters to prune: {prune_num_linear_filters}")
 
-        for i in range(prune_num_filters):
-            print('Prune Iteration:', i)
-            prunner.prune()
+        prune_num = (prunner.book.num_of_conv2d_filters() + prunner.book.num_of_linear_filters() -
+                      2 * (prunner.book.num_of_conv2d_modules() + prunner.book.num_of_linear_modules()))
+
+        conv_scores = []
+        linear_scores = []
+        i = 0
+        while i < prune_num:
+            logging.info(f"Prune: {i}/{prune_num}")
+            if len(conv_scores) < 5:
+                logging.info("Prune Conv Layers.")
+                _, accuracy_gain = prunner.prune_conv_layers(args.prune_conv_num)
+                conv_scores.append(accuracy_gain)
+                i += args.prune_conv_num
+            elif len(linear_scores) < 5:
+                _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
+                linear_scores.append(accuracy_gain)
+                i += args.prune_linear_num
+            else:
+                conv_score = sum(conv_scores)
+                linear_score = sum(linear_scores)
+                if conv_score > linear_score:
+                    logging.info("Prune Conv Layers.")
+                    _, accuracy_gain = prunner.prune_conv_layers(args.prune_conv_num)
+                    conv_scores.pop(0)
+                    conv_scores.append(accuracy_gain)
+                    i += args.prune_conv_num
+                else:
+                    logging.info("Prune Linear Layers.")
+                    _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
+                    linear_scores.pop(0)
+                    linear_scores.append(accuracy_gain)
+                    i += args.prune_linear_num
+            logging.info(f"Prune: {i}/{prune_num}, Train Accuracy Gain: {accuracy_gain}")
             val_loss, val_accuracy = eval(prunner.model, val_loader)
-            logging.info(f"Prune Iteration: {i}. After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
+            logging.info(f"Prune: {i}/{prune_num}, After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
             val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
-            logging.info(f"Prune Iteration: {i}. After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
-            if i % 20 == 0:
-                with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
-                    print(prunner.model, file=f)
-                torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-iter-{i}-{val_accuracy:.4f}.pth")
+            logging.info(f"Prune: {i}/{prune_num}, After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
+            with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
+                print(prunner.model, file=f)
+            torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-pruned-{i}-{val_accuracy:.4f}.pth")
     else:
         logging.fatal("You should specify --prune or --train.")
