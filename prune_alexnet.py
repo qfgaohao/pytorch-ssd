@@ -24,8 +24,8 @@ parser.add_argument('--batch_size', default=12, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=25, type=int,
                     help='number of batches to train')
-parser.add_argument('--num_recovery_epochs', default=1, type=int,
-                    help='number of epochs to train to recover the network')
+parser.add_argument('--num_recovery_batches', default=2, type=int,
+                    help='number of batches to train to recover the network')
 parser.add_argument('--recovery_learning_rate', default=1e-4, type=int,
                     help='learning rate to recover the network')
 parser.add_argument('--recovery_batch_size', default=32, type=int,
@@ -62,21 +62,31 @@ if args.use_cuda and torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 
 
-def train_epoch(net, data_iter):
+def train_epoch(net, data_iter, num_epochs=1, optimizer=None):
     net = net.to(DEVICE)
     net.train()
     criterion = nn.CrossEntropyLoss()
 
-    inputs, labels = next(data_iter)
-    inputs = inputs.to(DEVICE)
-    labels = labels.to(DEVICE)
-    outputs = net(inputs)
+    num = 0
+    for i in range(num_epochs):
+        inputs, labels = next(data_iter)
+        inputs = inputs.to(DEVICE)
+        labels = labels.to(DEVICE)
+        if optimizer:
+            optimizer.zero_grad()
 
-    _, preds = torch.max(outputs, 1)
-    loss = criterion(outputs, labels)
-    loss.backward()
-    train_loss = loss.item()
-    train_accuracy = torch.sum(preds == labels.data).item() / inputs.size(0)
+        outputs = net(inputs)
+
+        _, preds = torch.max(outputs, 1)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        if optimizer:
+            optimizer.step()
+        train_loss = loss.item() * inputs.size(0)
+        train_accuracy = torch.sum(preds == labels.data).item()
+        num += inputs.size(0)
+    train_loss /= num
+    train_accuracy /= num
     logging.info('Train Epoch Loss:{:.4f}, Accuracy:{:.4f}'.format(train_loss, train_accuracy))
     return train_loss, train_accuracy
 
@@ -180,14 +190,14 @@ if __name__ == '__main__':
     logging.info(f"Validation Dataset size: {len(val_dataset)}.")
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=1)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False, num_workers=1)
     if args.train:
         logging.info("Start training.")
         train(net, train_loader, val_loader, args.num_epochs, args.learning_rate)
     elif args.prune_conv or args.prune_linear:
         net.load_state_dict(torch.load(args.trained_model))
-        data_iter = iter(make_prunner_loader(train_dataset))
-        prunner = ModelPrunner(net, lambda model: train_epoch(model, data_iter),
+        prunner_data_iter = iter(make_prunner_loader(train_dataset))
+        prunner = ModelPrunner(net, lambda model: train_epoch(model, prunner_data_iter),
                                ignored_paths=[('classifier', '6')])  # do not prune the last layer.
         num_filters = prunner.book.num_of_conv2d_filters()
         logging.info(f"Number of Conv2d filters: {num_filters}")
@@ -201,6 +211,9 @@ if __name__ == '__main__':
         logging.info(f"Number of Layers to Prune: {prune_num}")
         i = 0
         iteration = 0
+        train_data_iter = iter(make_prunner_loader(train_dataset))
+        optimizer = optim.SGD(net.parameters(), lr=args.recovery_learning_rate,
+                              momentum=args.momentum, weight_decay=args.weight_decay)
         while i < prune_num:
             if args.prune_conv:
                 prunner.prune_conv_layers(args.prune_conv_num)
@@ -208,12 +221,13 @@ if __name__ == '__main__':
             else:
                 _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
                 i += args.prune_linear_num
-
-            val_loss, val_accuracy = eval(prunner.model, val_loader)
-            logging.info(f"Prune: {i}/{prune_num}, After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
-            val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
-            logging.info(f"Prune: {i}/{prune_num}, After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
             if iteration % 10 == 0:
+                val_loss, val_accuracy = eval(prunner.model, val_loader)
+                logging.info(f"Prune: {i}/{prune_num}, After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
+            val_loss, val_accuracy = train_epoch(prunner.model, train_data_iter, args.num_recovery_batches, optimizer)
+            if iteration % 10 == 0:
+                val_loss, val_accuracy = eval(prunner.model, val_loader)
+                logging.info(f"Prune: {i}/{prune_num}, After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
                 logging.info(f"Prune: {i}/{prune_num}, Iteration: {iteration}, Save model.")
                 with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
                     print(prunner.model, file=f)
