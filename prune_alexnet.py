@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-from torchvision import datasets, models, transforms
+from torchvision import datasets, transforms
 import argparse
 import logging
 import sys
@@ -15,7 +15,8 @@ from vision.nn.alexnet import alexnet
 parser = argparse.ArgumentParser(description='Demonstration of Pruning AlexNet')
 
 parser.add_argument("--train", dest="train", action="store_true")
-parser.add_argument("--prune", dest="prune", action="store_true")
+parser.add_argument("--prune_conv", dest="prune_conv", action="store_true")
+parser.add_argument("--prune_linear", dest="prune_linear", action="store_true")
 parser.add_argument("--trained_model", type=str)
 parser.add_argument('--dataset', type=str, help='Dataset directory path')
 parser.add_argument('--validation_dataset', help='Dataset directory path')
@@ -43,7 +44,7 @@ parser.add_argument('--gamma', default=0.1, type=float,
 # Params for Pruning
 parser.add_argument('--prune_conv_num', default=1, type=int,
                     help='the number of conv filters you want to prune in very iteration.')
-parser.add_argument('--prune_linear_num', default=10, type=int,
+parser.add_argument('--prune_linear_num', default=2, type=int,
                     help='the number of linear filters you want to prune in very iteration.')
 parser.add_argument('--window', default=10, type=int,
                     help='Window size for tracking training accuracy.')
@@ -183,7 +184,7 @@ if __name__ == '__main__':
     if args.train:
         logging.info("Start training.")
         train(net, train_loader, val_loader, args.num_epochs, args.learning_rate)
-    elif args.prune:
+    elif args.prune_conv or args.prune_linear:
         net.load_state_dict(torch.load(args.trained_model))
         data_iter = iter(make_prunner_loader(train_dataset))
         prunner = ModelPrunner(net, lambda model: train_epoch(model, data_iter),
@@ -193,50 +194,30 @@ if __name__ == '__main__':
 
         num_linear_filters = prunner.book.num_of_linear_filters()
         logging.info(f"Number of Linear filters: {num_linear_filters}")
-
-        prune_num = (prunner.book.num_of_conv2d_filters() + prunner.book.num_of_linear_filters() -
-                      2 * (prunner.book.num_of_conv2d_modules() + prunner.book.num_of_linear_modules()))
-
-        conv_scores = []
-        linear_scores = []
+        if args.prune_conv:
+            prune_num = prunner.book.num_of_conv2d_filters() - 5 * (prunner.book.num_of_conv2d_modules())
+        else:
+            prune_num = prunner.book.num_of_linear_filters() - 5 * (prunner.book.num_of_linear_modules())
+        logging.info(f"Number of Layers to Prune: {prune_num}")
         i = 0
         iteration = 0
         while i < prune_num:
-            logging.info(f"Prune: {i}/{prune_num}, Iteration: {iteration}")
-            if len(conv_scores) < args.window:
-                logging.info("Prune Conv Layers.")
-                _, accuracy_gain = prunner.prune_conv_layers(args.prune_conv_num)
-                conv_scores.append(accuracy_gain)
+            if args.prune_conv:
+                prunner.prune_conv_layers(args.prune_conv_num)
                 i += args.prune_conv_num
-            elif len(linear_scores) < args.window:
-                _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
-                linear_scores.append(accuracy_gain)
-                i += args.prune_linear_num
             else:
-                conv_score = sum(conv_scores)
-                linear_score = sum(linear_scores)
-                if conv_score > linear_score:
-                    logging.info("Prune Conv Layers.")
-                    _, accuracy_gain = prunner.prune_conv_layers(args.prune_conv_num)
-                    conv_scores.pop(0)
-                    conv_scores.append(accuracy_gain)
-                    i += args.prune_conv_num
-                else:
-                    logging.info("Prune Linear Layers.")
-                    _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
-                    linear_scores.pop(0)
-                    linear_scores.append(accuracy_gain)
-                    i += args.prune_linear_num
-            logging.info(f"Prune: {i}/{prune_num}, Train Accuracy Gain: {accuracy_gain:.4f}")
+                _, accuracy_gain = prunner.prune_linear_layers(args.prune_linear_num)
+                i += args.prune_linear_num
+
             val_loss, val_accuracy = eval(prunner.model, val_loader)
             logging.info(f"Prune: {i}/{prune_num}, After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
             val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
             logging.info(f"Prune: {i}/{prune_num}, After Recovery Evaluation Accuracy:{val_accuracy:.4f}.")
-            if iteration % 30 == 0:
+            if iteration % 10 == 0:
                 logging.info(f"Prune: {i}/{prune_num}, Iteration: {iteration}, Save model.")
                 with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
                     print(prunner.model, file=f)
                 torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-{i}-{prune_num}-{val_accuracy:.4f}.pth")
             iteration += 1
     else:
-        logging.fatal("You should specify --prune or --train.")
+        logging.fatal("You should specify --prune_conv, --prune_linear or --train.")
