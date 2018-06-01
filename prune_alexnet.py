@@ -227,7 +227,7 @@ if __name__ == '__main__':
                     linear_scores.pop(0)
                     linear_scores.append(accuracy_gain)
                     i += args.prune_linear_num
-            logging.info(f"Prune: {i}/{prune_num}, Train Accuracy Gain: {accuracy_gain}")
+            logging.info(f"Prune: {i}/{prune_num}, Train Accuracy Gain: {accuracy_gain:.4f}")
             val_loss, val_accuracy = eval(prunner.model, val_loader)
             logging.info(f"Prune: {i}/{prune_num}, After Pruning Evaluation Accuracy:{val_accuracy:.4f}.")
             val_loss, val_accuracy = train(prunner.model, train_loader, val_loader, args.num_recovery_epochs, args.recovery_learning_rate, save_model=False)
@@ -236,7 +236,7 @@ if __name__ == '__main__':
                 logging.info(f"Prune: {i}/{prune_num}, Iteration: {iteration}, Save model.")
                 with open(f"models/alexnet-pruned-{i}.txt", "w") as f:
                     print(prunner.model, file=f)
-                torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-pruned-{i}-{val_accuracy:.4f}.pth")
+                torch.save(prunner.model.state_dict(), f"models/prunned-alexnet-{i}-{prune_num}-{val_accuracy:.4f}.pth")
             iteration += 1
     else:
         logging.fatal("You should specify --prune or --train.")
