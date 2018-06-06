@@ -147,10 +147,10 @@ class ModelPrunner:
                 self.last_conv_path = path
             elif isinstance(m, nn.BatchNorm2d):
                 if self.last_conv_path:
-                    self.decendent_batch_norms[self.last_conv_path] = self.book.get_path(m)
+                    self.decendent_batch_norms[self.last_conv_path] = path
             elif isinstance(m, nn.Linear):
                 if self.last_conv_path:
-                    self.descendent_linears[self.last_conv_path] = self.book.get_path(m)
+                    self.descendent_linears[self.last_conv_path] = path
                 self.last_conv_path = None  # after a linear layer the conv layer doesn't matter
 
         def backward_hook(m, input, output):
