@@ -21,7 +21,7 @@ The implementation is heavily influenced by the project [ssd.pytorch](https://gi
 1. Download trained model to the directory models.
   Currently two models are provided:
   [VGG-SSD-mAP-0.768](https://storage.googleapis.com/models-hao/VGG-SSD-Epoch-115-Loss-2.82-map-0.768.pth)
-and the model translated from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) [VGG-SSD-mAP-0.774](https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth).
+and the model translated from [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) [VGG-SSD-mAP-0.774](https://storage.googleapis.com/models-hao/vgg_ssd300_mAP_77.43_v2.pth).
 2. Run **"python run_ssd_live_demo.py models/VGG-SSD-Epoch-115-Loss-2.82-map-0.768.pth"**
 
 #### Test on images
