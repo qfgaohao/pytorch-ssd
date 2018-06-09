@@ -1,4 +1,4 @@
-# Pytorch Computer Vision
+# Pytorch Computer Vision Algorithms
 
 This repo aims to implement object detection and some other common computer vision algorithms.
 The design goal is modularity and extensibility.
