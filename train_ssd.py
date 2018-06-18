@@ -191,7 +191,7 @@ if __name__ == '__main__':
         train(train_loader, net, criterion, optimizer,
               device=DEVICE, debug_steps=args.debug_steps)
         
-        if epoch % args.validation_epochs == 0:
+        if epoch % args.validation_epochs == 0 or epoch == args.args.num_epochs - 1:
             val_loss, val_regression_loss, val_classification_loss = test(val_loader, net, criterion, DEVICE)
             logging.info("Epoch: {}, Validation Loss: {:.4f}, Validation Regression Loss {:.4f}, Validation Classification Loss: {:.4f}".format(
                 epoch,
