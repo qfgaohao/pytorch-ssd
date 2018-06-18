@@ -1,5 +1,6 @@
 import torch
 from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
+from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv1_ssd_predictor
 from vision.datasets.voc_dataset import VOCDataset, class_names
 from vision.utils import box_utils, measurements
 from vision.utils.misc import str2bool, Timer
@@ -9,6 +10,8 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
+parser.add_argument('--net', default="vgg16-ssd",
+                    help="The network architecture, it can be mobilenet-v1-ssd or vgg16-ssd.")
 parser.add_argument("--trained_model", type=str)
 parser.add_argument("--dataset", type=str, help="The root directory of the VOC dataset.")
 parser.add_argument("--use_cuda", type=str2bool, default=True)
@@ -111,12 +114,19 @@ if __name__ == '__main__':
     timer = Timer()
     dataset = VOCDataset(args.dataset, is_test=True)
     true_case_stat, all_gb_boxes, all_difficult_cases = group_annotation_by_class(dataset)
-    net = create_vgg_ssd(len(class_names))
+    if args.net == 'vgg16-ssd':
+        net = create_vgg_ssd(len(class_names))
+    else:
+        net = create_mobilenetv1_ssd(len(class_names))
+
     timer.start("Load Model")
     net.load(args.trained_model)
     net = net.to(DEVICE)
     print(f'It took {timer.end("Load Model")} seconds to load the model.')
-    predictor = create_vgg_ssd_predictor(net, nms_method=args.nms_method, device=DEVICE)
+    if args.net == 'vgg16-ssd':
+        predictor = create_vgg_ssd_predictor(net, nms_method=args.nms_method, device=DEVICE)
+    else:
+        predictor = create_mobilenetv1_ssd_predictor(net, nms_method=args.nms_method, device=DEVICE)
 
     results = []
     for i in range(len(dataset)):
