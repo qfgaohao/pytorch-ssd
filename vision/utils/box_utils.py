@@ -57,8 +57,6 @@ def generate_ssd_priors(specs: List[SSDSpec], image_size, clamp=True) -> torch.T
             ])
 
             # change h/w ratio of the small sized box
-            # based on the SSD implementation, it only applies ratio to the smallest size.
-            # it looks wierd.
             size = spec.box_sizes.min
             h = w = size / image_size
             for ratio in spec.aspect_ratios:
