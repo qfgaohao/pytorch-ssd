@@ -1,18 +1,19 @@
 from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
+from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv1_ssd_predictor
 from vision.datasets import voc_dataset
 from vision.utils.misc import Timer
 import cv2
 import sys
 
 
-if len(sys.argv) < 2:
-    print('Usage: python run_ssd_example.py <model path> [video file]')
+if len(sys.argv) < 3:
+    print('Usage: python run_ssd_example.py <net type>  <model path> [video file]')
     sys.exit(0)
+net_type = sys.argv[1]
+model_path = sys.argv[2]
 
-model_path = sys.argv[1]
-
-if len(sys.argv) >= 3:
-    cap = cv2.VideoCapture(sys.argv[2])  # capture from file
+if len(sys.argv) >= 4:
+    cap = cv2.VideoCapture(sys.argv[3])  # capture from file
 else:
     cap = cv2.VideoCapture(0)   # capture from camera
     cap.set(3, 640)
@@ -20,9 +21,16 @@ else:
 
 
 num_classes = len(voc_dataset.class_names)
-net = create_vgg_ssd(num_classes)
+if net_type == "mobilenet-v1-ssd":
+    net = create_mobilenetv1_ssd(num_classes)
+else:
+    net = create_vgg_ssd(num_classes)
 net.load(model_path)
-predictor = create_vgg_ssd_predictor(net, candidate_size=200)
+if net_type == "mobilenet-v1-ssd":
+    predictor = create_mobilenetv1_ssd_predictor(net, candidate_size=200)
+else:
+    predictor = create_vgg_ssd_predictor(net, candidate_size=200)
+
 timer = Timer()
 while True:
     ret, orig_image = cap.read()
