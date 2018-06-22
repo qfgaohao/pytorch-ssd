@@ -10,6 +10,7 @@ from vision.utils.misc import str2bool, Timer
 from vision.ssd.ssd import MatchPrior
 from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
+from vision.ssd.fpn_mobilenetv1_ssd import create_fpn_mobilenetv1_ssd
 from vision.datasets.voc_dataset import VOCDataset, class_names
 from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
@@ -24,7 +25,7 @@ parser.add_argument('--datasets', nargs='+', help='Dataset directory path')
 parser.add_argument('--validation_dataset', help='Dataset directory path')
 
 parser.add_argument('--net', default="vgg16-ssd",
-                    help="The network architecture, it can be mobilenet-v1-ssd or vgg16-ssd.")
+                    help="The network architecture, it can be fpn-mobilenet-v1-ssd, mobilenet-v1-ssd or vgg16-ssd.")
 
 # Params for SGD
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
@@ -133,9 +134,16 @@ if __name__ == '__main__':
     if args.net == 'vgg16-ssd':
         net = create_vgg_ssd(len(class_names))
         config = vgg_ssd_config
-    else:
+    elif args.net == 'mobilenet-v1-ssd':
         net = create_mobilenetv1_ssd(len(class_names))
         config = mobilenetv1_ssd_config
+    elif args.net == 'fpn-mobilenet-v1-ssd':
+        net = create_fpn_mobilenetv1_ssd(len(class_names))
+        config = mobilenetv1_ssd_config
+    else:
+        logging.fatal("The net type is wrong.")
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
                              center_variance=0.1, size_variance=0.2, device=DEVICE)

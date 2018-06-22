@@ -42,7 +42,7 @@ def create_mobilenetv1_ssd(num_classes):
     ])
 
     regression_headers = ModuleList([
-        Conv2d(in_channels=512, out_channels=4 * 4, kernel_size=3, padding=1),
+        Conv2d(in_channels=512, out_channels=6 * 4, kernel_size=3, padding=1),
         Conv2d(in_channels=1024, out_channels=6 * 4, kernel_size=3, padding=1),
         Conv2d(in_channels=512, out_channels=6 * 4, kernel_size=3, padding=1),
         Conv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1),
@@ -51,7 +51,7 @@ def create_mobilenetv1_ssd(num_classes):
     ])
 
     classification_headers = ModuleList([
-        Conv2d(in_channels=512, out_channels=4 * num_classes, kernel_size=3, padding=1),
+        Conv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1),
         Conv2d(in_channels=1024, out_channels=6 * num_classes, kernel_size=3, padding=1),
         Conv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1),
         Conv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
