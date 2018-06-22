@@ -36,6 +36,8 @@ parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
+parser.add_argument('--milestones', default="80,100", type=str,
+                    help="milestones for MultiStepLR")
 
 # Params for loading pretrained basenet or checkpoints.
 parser.add_argument('--base_net', default='models/vgg16_reducedfc.pth',
@@ -166,8 +168,9 @@ if __name__ == '__main__':
         min_loss = -10000.0
         last_epoch = -1
     logging.info(f'It took {timer.end("Load Model")} seconds to load the model.')
-    
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[80, 100],
+
+    milestones = [int(v.strip()) for v in args.milestones.split(",")]
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones,
                                                      gamma=0.1, last_epoch=last_epoch)
     train_transform = TrainAugmentation(config.image_size, config.image_mean)
     target_transform = MatchPrior(config.priors, config.center_variance,
