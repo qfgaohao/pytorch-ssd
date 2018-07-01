@@ -16,8 +16,8 @@ if len(sys.argv) >= 4:
     cap = cv2.VideoCapture(sys.argv[3])  # capture from file
 else:
     cap = cv2.VideoCapture(0)   # capture from camera
-    cap.set(3, 640)
-    cap.set(4, 480)
+    cap.set(3, 1920)
+    cap.set(4, 1080)
 
 
 num_classes = len(voc_dataset.class_names)
