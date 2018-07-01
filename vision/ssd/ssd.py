@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 from typing import List, Tuple
+import torch.nn.functional as F
 
 from ..utils import box_utils
 
@@ -59,6 +60,7 @@ class SSD(nn.Module):
             locations.append(location)
 
         confidences = torch.cat(confidences, 1)
+        confidences = F.softmax(confidences, dim=2)
         locations = torch.cat(locations, 1)
         return confidences, locations
 
