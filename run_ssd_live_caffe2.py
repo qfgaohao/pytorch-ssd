@@ -22,15 +22,10 @@ def load_model(init_net_path, predict_net_path):
     return p
 
 
-def predict(width, height, confidences, locations, prob_threshold, iou_threshold=0.5, top_k=-1):
-    print('confidences', confidences.shape,locations.shape, priors.shape)
-    confidences = confidences[0, :, :]
-    locations = locations[0, :, :]
-    boxes = box_utils.convert_locations_to_boxes(
-        locations, priors, center_variance, size_variance
-    )
-    boxes = box_utils.center_form_to_corner_form(boxes)
-
+def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5, top_k=-1):
+    boxes = boxes[0]
+    confidences = confidences[0]
+    print('predict', confidences.shape, boxes.shape)
     picked_box_probs = []
     picked_labels = []
     for class_index in range(1, confidences.shape[1]):
@@ -71,7 +66,7 @@ print("Current blobs in the workspace: {}".format(workspace.Blobs()))
 #     print(name)
 
 dummy_input = np.random.randn(1, 3, 300, 300).astype(np.float32)
-confidences, locations = predictor.run({'0': dummy_input})
+confidences, boxes = predictor.run({'0': dummy_input})
 
 if len(sys.argv) >= 4:
     cap = cv2.VideoCapture(sys.argv[3])  # capture from file
@@ -92,11 +87,11 @@ while True:
     image = np.transpose(image, [2, 0, 1])
     image = np.expand_dims(image, axis=0)
     timer.start()
-    confidences, locations = predictor.run({'0': image})
+    confidences, boxes = predictor.run({'0': image})
     interval = timer.end()
     print('Inference Time: {:.2f}s.'.format(interval))
     timer.start()
-    boxes, labels, probs = predict(orig_image.shape[1], orig_image.shape[0], confidences, locations, 0.4)
+    boxes, labels, probs = predict(orig_image.shape[1], orig_image.shape[0], confidences, boxes, 0.4)
     interval = timer.end()
     print('NMS Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.shape[0]))
     for i in range(boxes.shape[0]):
