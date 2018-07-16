@@ -32,7 +32,7 @@ predict_net_path = "models/mobilenetv1_ssd_predict_net.pb"
 predict_net_txt_path = "models/mobilenetv1_ssd_predict_net.pbtxt"
 
 dummy_input = torch.randn(1, 3, 300, 300)
-torch.onnx.export(net, dummy_input, model_path, verbose=True, output_names=['confidences', 'locations'])
+torch.onnx.export(net, dummy_input, model_path, verbose=True, output_names=['scores', 'boxes'])
 
 model = onnx.load(model_path)
 #prepared_backend = onnx_caffe2.backend.prepare(model)
