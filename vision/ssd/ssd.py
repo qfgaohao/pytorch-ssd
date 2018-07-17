@@ -2,8 +2,10 @@ import torch.nn as nn
 import torch
 import numpy as np
 from typing import List, Tuple
+import torch.nn.functional as F
 
 from ..utils import box_utils
+from .config import mobilenetv1_ssd_config as config
 
 
 class SSD(nn.Module):
@@ -59,8 +61,13 @@ class SSD(nn.Module):
             locations.append(location)
 
         confidences = torch.cat(confidences, 1)
+        confidences = F.softmax(confidences, dim=2)
         locations = torch.cat(locations, 1)
-        return confidences, locations
+        boxes = box_utils.convert_locations_to_boxes(
+            locations, config.priors, config.center_variance, config.size_variance
+        )
+        boxes = box_utils.center_form_to_corner_form(boxes)
+        return confidences, boxes
 
     def compute_header(self, i, x):
         confidence = self.classification_headers[i](x)

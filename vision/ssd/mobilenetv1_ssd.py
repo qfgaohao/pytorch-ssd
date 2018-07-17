@@ -8,11 +8,11 @@ from .config import mobilenetv1_ssd_config as config
 
 
 def create_mobilenetv1_ssd(num_classes):
-    base_net = MobileNetV1(1001).features  # disable dropout layer
+    base_net = MobileNetV1(1001).model  # disable dropout layer
 
     source_layer_indexes = [
-        69,
-        len(base_net),
+        12,
+        14,
     ]
     extras = ModuleList([
         Sequential(
