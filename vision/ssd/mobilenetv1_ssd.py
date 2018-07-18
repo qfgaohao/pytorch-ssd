@@ -7,7 +7,7 @@ from .predictor import Predictor
 from .config import mobilenetv1_ssd_config as config
 
 
-def create_mobilenetv1_ssd(num_classes):
+def create_mobilenetv1_ssd(num_classes, is_test=False):
     base_net = MobileNetV1(1001).model  # disable dropout layer
 
     source_layer_indexes = [
@@ -60,7 +60,7 @@ def create_mobilenetv1_ssd(num_classes):
     ])
 
     return SSD(num_classes, base_net, source_layer_indexes,
-               extras, classification_headers, regression_headers)
+               extras, classification_headers, regression_headers, is_test=is_test, config=config)
 
 
 def create_mobilenetv1_ssd_predictor(net, candidate_size=200, nms_method=None, sigma=0.5, device=torch.device('cpu')):

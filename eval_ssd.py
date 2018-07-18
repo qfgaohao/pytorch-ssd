@@ -115,9 +115,9 @@ if __name__ == '__main__':
     dataset = VOCDataset(args.dataset, is_test=True)
     true_case_stat, all_gb_boxes, all_difficult_cases = group_annotation_by_class(dataset)
     if args.net == 'vgg16-ssd':
-        net = create_vgg_ssd(len(class_names))
+        net = create_vgg_ssd(len(class_names), is_test=True)
     else:
-        net = create_mobilenetv1_ssd(len(class_names))
+        net = create_mobilenetv1_ssd(len(class_names), is_test=True)
 
     timer.start("Load Model")
     net.load(args.trained_model)

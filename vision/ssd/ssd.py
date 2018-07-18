@@ -5,13 +5,12 @@ from typing import List, Tuple
 import torch.nn.functional as F
 
 from ..utils import box_utils
-from .config import mobilenetv1_ssd_config as config
 
 
 class SSD(nn.Module):
     def __init__(self, num_classes: int, base_net: nn.ModuleList, source_layer_indexes: List[int],
                  extras: nn.ModuleList, classification_headers: nn.ModuleList,
-                 regression_headers: nn.ModuleList):
+                 regression_headers: nn.ModuleList, is_test=False, config=None, device=None):
         """Compose a SSD model using the given components.
         """
         super(SSD, self).__init__()
@@ -22,10 +21,19 @@ class SSD(nn.Module):
         self.extras = extras
         self.classification_headers = classification_headers
         self.regression_headers = regression_headers
+        self.is_test = is_test
+        self.config = config
 
         # register layers in source_layer_indexes by adding them to a module list
         self.source_layer_add_ons = nn.ModuleList([t[1] for t in source_layer_indexes if isinstance(t, tuple)])
-
+        if device:
+            self.device = device
+        else:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if is_test:
+            self.config = config
+            self.priors = config.priors.to(device)
+            
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         confidences = []
         locations = []
@@ -63,11 +71,14 @@ class SSD(nn.Module):
         confidences = torch.cat(confidences, 1)
         confidences = F.softmax(confidences, dim=2)
         locations = torch.cat(locations, 1)
-        boxes = box_utils.convert_locations_to_boxes(
-            locations, config.priors, config.center_variance, config.size_variance
-        )
-        boxes = box_utils.center_form_to_corner_form(boxes)
-        return confidences, boxes
+        if self.is_test:
+            boxes = box_utils.convert_locations_to_boxes(
+                locations, self.priors, self.config.center_variance, self.config.size_variance
+            )
+            boxes = box_utils.center_form_to_corner_form(boxes)
+            return confidences, boxes
+        else:
+            return confidences, locations
 
     def compute_header(self, i, x):
         confidence = self.classification_headers[i](x)
@@ -81,7 +92,7 @@ class SSD(nn.Module):
         return confidence, location
 
     def init_from_base_net(self, model):
-        self.base_net.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage), strict=False)
+        self.base_net.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage), strict=True)
         self.source_layer_add_ons.apply(_xavier_init_)
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
