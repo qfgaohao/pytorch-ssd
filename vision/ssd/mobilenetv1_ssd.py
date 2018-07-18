@@ -64,8 +64,7 @@ def create_mobilenetv1_ssd(num_classes):
 
 
 def create_mobilenetv1_ssd_predictor(net, candidate_size=200, nms_method=None, sigma=0.5, device=torch.device('cpu')):
-    predictor = Predictor(net, config.image_size, config.image_mean, config.priors,
-                          config.center_variance, config.size_variance,
+    predictor = Predictor(net, config.image_size, config.image_mean,
                           nms_method=nms_method,
                           iou_threshold=config.iou_threshold,
                           candidate_size=candidate_size,

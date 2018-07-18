@@ -2,7 +2,7 @@ from ..transforms.transforms import *
 
 
 class TrainAugmentation:
-    def __init__(self, size, mean):
+    def __init__(self, size, mean=0, std=1.0):
         """
         Args:
             size: the size the of final image.
@@ -19,6 +19,7 @@ class TrainAugmentation:
             ToPercentCoords(),
             Resize(self.size),
             SubtractMeans(self.mean),
+            lambda img, boxes=None, labels=None: (img / std, boxes, labels),
             ToTensor(),
         ])
 
@@ -34,11 +35,12 @@ class TrainAugmentation:
 
 
 class TestTransform:
-    def __init__(self, size, mean):
+    def __init__(self, size, mean=0.0, std=1.0):
         self.transform = Compose([
             ToPercentCoords(),
             Resize(size),
             SubtractMeans(mean),
+            lambda img, boxes=None, labels=None: (img / std, boxes, labels),
             ToTensor(),
         ])
 
@@ -47,10 +49,11 @@ class TestTransform:
 
 
 class PredictionTransform:
-    def __init__(self, size, mean):
+    def __init__(self, size, mean=0.0, std=1.0):
         self.transform = Compose([
             Resize(size),
             SubtractMeans(mean),
+            lambda img, boxes=None, labels=None: (img / std, boxes, labels),
             ToTensor()
         ])
 
