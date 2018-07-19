@@ -25,12 +25,10 @@ def load_model(init_net_path, predict_net_path):
 def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5, top_k=-1):
     boxes = boxes[0]
     confidences = confidences[0]
-    print('predict', confidences.shape, boxes.shape)
     picked_box_probs = []
     picked_labels = []
     for class_index in range(1, confidences.shape[1]):
         probs = confidences[:, class_index]
-        #print("max prob", class_index, probs.max())
         mask = probs > prob_threshold
         probs = probs[mask]
         if probs.shape[0] == 0:
@@ -61,13 +59,6 @@ predict_net_path = sys.argv[2]
 
 predictor = load_model(init_net_path, predict_net_path)
 
-print("Current blobs in the workspace: {}".format(workspace.Blobs()))
-# for name in workspace.blobs:
-#     print(name)
-
-dummy_input = np.random.randn(1, 3, 300, 300).astype(np.float32)
-confidences, boxes = predictor.run({'0': dummy_input})
-
 if len(sys.argv) >= 4:
     cap = cv2.VideoCapture(sys.argv[3])  # capture from file
 else:
@@ -83,7 +74,7 @@ while True:
     image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (300, 300))
     image = image.astype(np.float32)
-    image = image - 127
+    image = (image - 127) / 128
     image = np.transpose(image, [2, 0, 1])
     image = np.expand_dims(image, axis=0)
     timer.start()
