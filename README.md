@@ -83,7 +83,7 @@ python convert_to_caffe2_models.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0
 
 The converted models are models/mobilenet-v1-ssd.onnx, models/mobilenet-v1-ssd_init_net.pb and models/mobilenet-v1-ssd_predict_net.pb. The models in the format of pbtxt are also saved for reference.
 
-TODO
+## TODO
 
 1. Modify VGG to make it ONNX friendly.
 2. Resnet34 Based Model.
