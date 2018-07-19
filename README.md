@@ -73,6 +73,14 @@ The dataset path is the parent directory of the folders: Annotations, ImageSets,
 python eval_ssd.py --net mobilenet-v1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model mobilenet-v1-ssd models/mobilenetv1-ssd-with-relu-loss-2.94.pth
 ```
 
+## Convert models to ONNX and Caffe2 models
+
+```bash
+python convert_to_caffe2_models.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth
+```
+
+The converted models are models/mobilenet-v1-ssd.onnx, models/mobilenet-v1-ssd_init_net.pb and models/mobilenet-v1-ssd_predict_net.pb. The models in the format of pbtxt are also saved for reference.
+
 TODO
 
 1. Modify VGG to make it ONNX friendly.
