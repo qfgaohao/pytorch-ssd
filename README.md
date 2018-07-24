@@ -5,6 +5,8 @@ The design goal is modularity and extensibility.
 
 Currently, it has mobilenet based SSD and VGG based SSD.
 
+![Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.)](run_ssd_example_output.jpg)
+
 ## Dependencies
 1. Python 3.5+
 2. OpenCV
