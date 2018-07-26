@@ -1,9 +1,11 @@
 # Single Shot MultiBox Detector Implementation in Pytorch
 
-This repo implements [SSD (Single Shot MultiBox Detector)](https://arxiv.org/abs/1512.02325). The implementation is heavily influenced by the project [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) and [Detectron](https://github.com/facebookresearch/Detectron).
+This repo implements [SSD (Single Shot MultiBox Detector)](https://arxiv.org/abs/1512.02325). The implementation is heavily influenced by the projects [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) and [Detectron](https://github.com/facebookresearch/Detectron).
 The design goal is modularity and extensibility.
 
 Currently, it has mobilenet based SSD and VGG based SSD.
+
+![Example of Mobile SSD](run_ssd_example_output.jpg "Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.")
 
 ## Dependencies
 1. Python 3.5+
@@ -15,8 +17,8 @@ Currently, it has mobilenet based SSD and VGG based SSD.
 ### Run the live Mobilenet SSD demo
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/mobilenetv1-ssd-with-relu-loss-2.94.pth
-python run_ssd_live_demo.py mobilenet-v1-ssd models/mobilenetv1-ssd-with-relu-loss-2.94.pth
+wget -P models https://storage.googleapis.com/models-hao/mobilenet-v1-ssd-mp-0_675.pth
+python run_ssd_live_demo.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth
 ```
 ### Run the live demo in Caffe2
 
@@ -29,6 +31,8 @@ python run_ssd_live_caffe2.py models/mobilenetv1_ssd_init_net.pb models/mobilene
 ## Pretrained Models
 
 ### Mobilenet V1 SSD
+
+URL: https://storage.googleapis.com/models-hao/mobilenet-v1-ssd-mp-0_675.pth
 
 ```
 Average Precision Per-class:
@@ -70,7 +74,7 @@ The dataset path is the parent directory of the folders: Annotations, ImageSets,
 ## Evaluation
 
 ```bash
-python eval_ssd.py --net mobilenet-v1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model mobilenet-v1-ssd models/mobilenetv1-ssd-with-relu-loss-2.94.pth
+python eval_ssd.py --net mobilenet-v1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth
 ```
 
 ## Convert models to ONNX and Caffe2 models
@@ -81,8 +85,8 @@ python convert_to_caffe2_models.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0
 
 The converted models are models/mobilenet-v1-ssd.onnx, models/mobilenet-v1-ssd_init_net.pb and models/mobilenet-v1-ssd_predict_net.pb. The models in the format of pbtxt are also saved for reference.
 
-TODO
+## TODO
 
 1. Modify VGG to make it ONNX friendly.
-2. Resnet 34 Based Model.
+2. Resnet34 Based Model.
 3. BatchNorm Fusion.
