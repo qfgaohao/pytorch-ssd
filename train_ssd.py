@@ -26,6 +26,8 @@ parser.add_argument('--validation_dataset', help='Dataset directory path')
 
 parser.add_argument('--net', default="vgg16-ssd",
                     help="The network architecture, it can be fpn-mobilenet-v1-ssd, mobilenet-v1-ssd or vgg16-ssd.")
+parser.add_argument('--use_coord_conv', default=False, type=str2bool,
+                    help='use coord_conv')
 
 # Params for SGD
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
@@ -150,7 +152,7 @@ if __name__ == '__main__':
         net = create_vgg_ssd(len(class_names))
         config = vgg_ssd_config
     elif args.net == 'mobilenet-v1-ssd':
-        net = create_mobilenetv1_ssd(len(class_names))
+        net = create_mobilenetv1_ssd(len(class_names), coord_conv=args.use_coord_conv)
         config = mobilenetv1_ssd_config
     elif args.net == 'fpn-mobilenet-v1-ssd':
         net = create_fpn_mobilenetv1_ssd(len(class_names))

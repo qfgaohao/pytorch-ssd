@@ -5,12 +5,13 @@ from typing import List, Tuple
 import torch.nn.functional as F
 
 from ..utils import box_utils
+from ..nn.coord import Coord
 
 
 class SSD(nn.Module):
     def __init__(self, num_classes: int, base_net: nn.ModuleList, source_layer_indexes: List[int],
                  extras: nn.ModuleList, classification_headers: nn.ModuleList,
-                 regression_headers: nn.ModuleList, is_test=False, config=None, device=None):
+                 regression_headers: nn.ModuleList, is_test=False, config=None, device=None, coord_conv=False):
         """Compose a SSD model using the given components.
         """
         super(SSD, self).__init__()
@@ -23,6 +24,8 @@ class SSD(nn.Module):
         self.regression_headers = regression_headers
         self.is_test = is_test
         self.config = config
+        self.coord_conv = coord_conv
+        self.coord = None
 
         # register layers in source_layer_indexes by adding them to a module list
         self.source_layer_add_ons = nn.ModuleList([t[1] for t in source_layer_indexes if isinstance(t, tuple)])
@@ -35,6 +38,12 @@ class SSD(nn.Module):
             self.priors = config.priors.to(self.device)
             
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        if self.coord_conv:
+            if self.coord is None:
+                h = x.size(2)
+                w = x.size(3)
+                self.coord = Coord(h, w).to(self.device)
+            x = self.coord(x)
         confidences = []
         locations = []
         start_layer_index = 0
@@ -98,8 +107,12 @@ class SSD(nn.Module):
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
+        if self.coord_conv:
+            self._to_coord_conv()
 
     def init(self):
+        if self.coord_conv:
+            self._to_coord_conv()
         self.base_net.apply(_xavier_init_)
         self.source_layer_add_ons.apply(_xavier_init_)
         self.extras.apply(_xavier_init_)
@@ -107,10 +120,45 @@ class SSD(nn.Module):
         self.regression_headers.apply(_xavier_init_)
 
     def load(self, model):
+        if self.coord_conv:
+            self._to_coord_conv()
         self.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
 
     def save(self, model_path):
         torch.save(self.state_dict(), model_path)
+
+    def _to_coord_conv(self):
+        """Increase the in_channels of the first conv2d with in_channels 3.
+
+        It assumes the first conv2d with in_channels 3 is the first conv2d layer.
+        """
+        def first_child(m):
+            key = next(iter(m._modules))
+            return m._modules[key]
+
+        def get_input_conv(m):
+            if isinstance(m, nn.Conv2d) and m.in_channels == 3:
+                return m
+            else:
+                return get_input_conv(first_child(m))
+
+        def increase_in_channels_(conv):
+            conv.in_channels += 3
+            weight = torch.nn.parameter.Parameter(
+                torch.Tensor(
+                    conv.out_channels, conv.in_channels // conv.groups, *(conv.kernel_size)
+                )
+            )
+            # init it by a very small number
+            torch.nn.init.constant_(weight.data, 1e-5)
+            # copy back the old weights
+            weight.data[:, :-3, :, :] = conv.weight.data
+            conv.weight = weight
+
+        conv = get_input_conv(self)
+        if not conv:
+            raise ValueError("Couldn't find the first conv with input channels 3." + f"\n{self.base_net}\n")
+        increase_in_channels_(conv)
 
 
 class MatchPrior(object):
