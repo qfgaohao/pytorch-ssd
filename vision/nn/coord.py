@@ -9,7 +9,8 @@ class Coord(torch.nn.Module):
         r = torch.sqrt(
             torch.pow(x - w/2, 2) + torch.pow(y - h/2, 2)
         )
-        self.coord = torch.stack([x, y, r]).unsqueeze(0)
+        coord = torch.stack([x, y, r]).unsqueeze(0)
+        self.register_buffer('coord', coord)
 
     def forward(self, input):
         x = torch.cat([input, self.coord.expand(input.size(0), -1, -1, -1)], 1)
