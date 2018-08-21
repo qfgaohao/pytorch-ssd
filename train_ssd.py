@@ -13,6 +13,7 @@ from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.fpn_mobilenetv1_ssd import create_fpn_mobilenetv1_ssd
 from vision.datasets.voc_dataset import VOCDataset, class_names
+from vision.datasets.open_images import OpenImagesDataset
 from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
 from vision.ssd.config import mobilenetv1_ssd_config
@@ -20,6 +21,9 @@ from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
+
+parser.add_argument("--dataset_type", default="voc", type=str,
+                    help='Specify dataset type. Currently support voc and open_images.')
 
 parser.add_argument('--datasets', nargs='+', help='Dataset directory path')
 parser.add_argument('--validation_dataset', help='Dataset directory path')
@@ -200,17 +204,28 @@ if __name__ == '__main__':
 
     datasets = []
     for dataset_path in args.datasets:
-        dataset = VOCDataset(dataset_path, transform=train_transform,
-                               target_transform=target_transform)
+        if args.dataset_type == 'voc':
+            dataset = VOCDataset(dataset_path, transform=train_transform,
+                                 target_transform=target_transform)
+        elif args.dataset_type == 'open_images':
+            dataset = OpenImagesDataset(dataset_path,
+                 transform=train_transform, target_transform=target_transform,
+                 dataset_type="train", data_filter=lambda row: row['IsDepiction'] != 1)
+        else:
+            raise ValueError(f"Dataset tpye {args.dataset_type} is not supported.")
         datasets.append(dataset)
     train_dataset = ConcatDataset(datasets)
     logging.info("Train dataset size: {}".format(len(train_dataset)))
     train_loader = DataLoader(train_dataset, args.batch_size,
                               num_workers=args.num_workers,
                               shuffle=True)
-
-    val_dataset = VOCDataset(args.validation_dataset, transform=test_transform,
+    if args.dataset_type == "voc":
+        val_dataset = VOCDataset(args.validation_dataset, transform=test_transform,
                              target_transform=target_transform, is_test=True)
+    elif args.dataset_type == 'open_images':
+        val_dataset = OpenImagesDataset(dataset_path,
+                                    transform=test_transform, target_transform=target_transform,
+                                    dataset_type="validation", data_filter=lambda row: row['IsDepiction'] != 1)
     logging.info("validation dataset size: {}".format(len(val_dataset)))
 
     val_loader = DataLoader(val_dataset, args.batch_size,
