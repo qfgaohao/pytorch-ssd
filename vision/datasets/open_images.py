@@ -8,7 +8,7 @@ class OpenImagesDataset:
 
     def __init__(self, root,
                  transform=None, target_transform=None,
-                 dataset_type="train", data_filter=None):
+                 dataset_type="train", data_filter=None, balance_data=False):
         self.root = pathlib.Path(root)
         self.transform = transform
         self.target_transform = target_transform
@@ -16,6 +16,9 @@ class OpenImagesDataset:
         self.data_filter = data_filter
 
         self.data, self.class_names, self.class_dict = self._read_data()
+        self.balance_data = balance_data
+        if self.balance_data:
+            self.data = self._resample_data()
 
     def __getitem__(self, index):
         image_info = self.data[index]
@@ -55,3 +58,7 @@ class OpenImagesDataset:
         else:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
+
+    def _resample_data(self):
+        pass
+
