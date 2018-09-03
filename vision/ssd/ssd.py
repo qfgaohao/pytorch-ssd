@@ -99,6 +99,15 @@ class SSD(nn.Module):
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
 
+    def init_from_pretrained_ssd(self, model):
+        state_dict = torch.load(model, map_location=lambda storage, loc: storage)
+        state_dict = {k: v for k, v in state_dict.items() if not (k.startswith("classification_headers") or k.startswith("regression_headers"))}
+        model_dict = self.state_dict()
+        model_dict.update(state_dict)
+        self.load_state_dict(model_dict)
+        self.classification_headers.apply(_xavier_init_)
+        self.regression_headers.apply(_xavier_init_)
+
     def init(self):
         self.base_net.apply(_xavier_init_)
         self.source_layer_add_ons.apply(_xavier_init_)

@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 
-from vision.utils.misc import str2bool, Timer
+from vision.utils.misc import str2bool, Timer, freeze_net_layers
 from vision.ssd.ssd import MatchPrior
 from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
@@ -33,6 +33,10 @@ parser.add_argument('--balance_data', action='store_true',
 
 parser.add_argument('--net', default="vgg16-ssd",
                     help="The network architecture, it can be fpn-mobilenet-v1-ssd, mobilenet-v1-ssd or vgg16-ssd.")
+parser.add_argument('--freeze_base_net', action='store_true',
+                    help="Freeze base net layers.")
+parser.add_argument('--freeze_net', action='store_true',
+                    help="Freeze all the layers except the prediction head.")
 
 # Params for SGD
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
@@ -45,8 +49,9 @@ parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
 
 # Params for loading pretrained basenet or checkpoints.
-parser.add_argument('--base_net', default='models/vgg16_reducedfc.pth',
+parser.add_argument('--base_net',
                     help='Pretrained base model')
+parser.add_argument('--pretrained_ssd', help='Pre-trained base model')
 parser.add_argument('--resume', default=None, type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -175,14 +180,24 @@ if __name__ == '__main__':
     if args.resume:
         logging.info(f"Resume from the model {args.resume}")
         net.load(args.resume)
-        net = net.to(DEVICE)
-        last_epoch = -1
     elif args.base_net:
         logging.info(f"Init from base net {args.base_net}")
         net.init_from_base_net(args.base_net)
-        net = net.to(DEVICE)
-        min_loss = -10000.0
-        last_epoch = -1
+    elif args.pretrained_ssd:
+        logging.info(f"Init from pretrained ssd {args.pretrained_ssd}")
+        net.init_from_pretrained_ssd(args.pretrained_ssd)
+
+    min_loss = -10000.0
+    last_epoch = -1
+    if args.freeze_base_net:
+        freeze_net_layers(net.base_net)
+        logging.info("Freeze base net.")
+    if args.freeze_net:
+        freeze_net_layers(net.base_net)
+        freeze_net_layers(net.source_layer_add_ons)
+        freeze_net_layers(net.extras)
+        logging.info("Freeze all the layers except prediction heads.")
+    net.to(DEVICE)
 
     logging.info(f'Took {timer.end("Load Model"):.2f} seconds to load the model.')
 
