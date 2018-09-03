@@ -27,6 +27,9 @@ parser.add_argument("--dataset_type", default="voc", type=str,
 
 parser.add_argument('--datasets', nargs='+', help='Dataset directory path')
 parser.add_argument('--validation_dataset', help='Dataset directory path')
+parser.add_argument('--balance_data', action='store_true',
+                    help="Balance training data by down-sampling more frequent labels.")
+
 
 parser.add_argument('--net', default="vgg16-ssd",
                     help="The network architecture, it can be fpn-mobilenet-v1-ssd, mobilenet-v1-ssd or vgg16-ssd.")
@@ -210,7 +213,9 @@ if __name__ == '__main__':
         elif args.dataset_type == 'open_images':
             dataset = OpenImagesDataset(dataset_path,
                  transform=train_transform, target_transform=target_transform,
-                 dataset_type="train", data_filter=lambda row: row['IsDepiction'] != 1)
+                 dataset_type="train", balance_data=args.balance_data)
+            logging.info(dataset)
+
         else:
             raise ValueError(f"Dataset tpye {args.dataset_type} is not supported.")
         datasets.append(dataset)
@@ -225,7 +230,8 @@ if __name__ == '__main__':
     elif args.dataset_type == 'open_images':
         val_dataset = OpenImagesDataset(dataset_path,
                                     transform=test_transform, target_transform=target_transform,
-                                    dataset_type="validation", data_filter=lambda row: row['IsDepiction'] != 1)
+                                    dataset_type="validation")
+        logging.info(val_dataset)
     logging.info("validation dataset size: {}".format(len(val_dataset)))
 
     val_loader = DataLoader(val_dataset, args.batch_size,
