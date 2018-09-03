@@ -2,6 +2,7 @@ import argparse
 import os
 import logging
 import sys
+import itertools
 
 import torch
 from torch.utils.data import DataLoader, ConcatDataset
@@ -172,10 +173,6 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
-                             center_variance=0.1, size_variance=0.2, device=DEVICE)
-    optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum,
-                                weight_decay=args.weight_decay)
     timer.start("Load Model")
     if args.resume:
         logging.info(f"Resume from the model {args.resume}")
@@ -189,17 +186,26 @@ if __name__ == '__main__':
 
     min_loss = -10000.0
     last_epoch = -1
+    params = net.parameters()
     if args.freeze_base_net:
         freeze_net_layers(net.base_net)
+        params = itertools.chain(net.source_layer_add_ons.parameters(), net.extras.parameters(),
+                                 net.regression_headers.parameters(), net.classification_headers.parameters())
         logging.info("Freeze base net.")
     if args.freeze_net:
         freeze_net_layers(net.base_net)
         freeze_net_layers(net.source_layer_add_ons)
         freeze_net_layers(net.extras)
+        params = itertools.chain(net.regression_headers.parameters(), net.classification_headers.parameters())
         logging.info("Freeze all the layers except prediction heads.")
     net.to(DEVICE)
 
     logging.info(f'Took {timer.end("Load Model"):.2f} seconds to load the model.')
+
+    criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
+                             center_variance=0.1, size_variance=0.2, device=DEVICE)
+    optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum,
+                                weight_decay=args.weight_decay)
 
     if args.scheduler == 'multi-step':
         logging.info("Uses MultiStepLR scheduler.")
