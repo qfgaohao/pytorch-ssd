@@ -26,6 +26,10 @@ class OpenImagesDataset:
         image_info = self.data[index]
         image = self._read_image(image_info['image_id'])
         boxes = image_info['boxes']
+        boxes[:, 0] *= image.shape[1]
+        boxes[:, 1] *= image.shape[0]
+        boxes[:, 2] *= image.shape[1]
+        boxes[:, 3] *= image.shape[0]
         labels = image_info['labels']
         if self.transform:
             image, boxes, labels = self.transform(image, boxes, labels)
