@@ -222,17 +222,6 @@ if __name__ == '__main__':
                             shuffle=False)
     logging.info("Build network.")
     net = creat_net(num_classes)
-    timer.start("Load Model")
-    if args.resume:
-        logging.info(f"Resume from the model {args.resume}")
-        net.load(args.resume)
-    elif args.base_net:
-        logging.info(f"Init from base net {args.base_net}")
-        net.init_from_base_net(args.base_net)
-    elif args.pretrained_ssd:
-        logging.info(f"Init from pretrained ssd {args.pretrained_ssd}")
-        net.init_from_pretrained_ssd(args.pretrained_ssd)
-
     min_loss = -10000.0
     last_epoch = -1
     params = net.parameters()
@@ -247,9 +236,20 @@ if __name__ == '__main__':
         freeze_net_layers(net.extras)
         params = itertools.chain(net.regression_headers.parameters(), net.classification_headers.parameters())
         logging.info("Freeze all the layers except prediction heads.")
-    net.to(DEVICE)
 
+    timer.start("Load Model")
+    if args.resume:
+        logging.info(f"Resume from the model {args.resume}")
+        net.load(args.resume)
+    elif args.base_net:
+        logging.info(f"Init from base net {args.base_net}")
+        net.init_from_base_net(args.base_net)
+    elif args.pretrained_ssd:
+        logging.info(f"Init from pretrained ssd {args.pretrained_ssd}")
+        net.init_from_pretrained_ssd(args.pretrained_ssd)
     logging.info(f'Took {timer.end("Load Model"):.2f} seconds to load the model.')
+
+    net.to(DEVICE)
 
     criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
                              center_variance=0.1, size_variance=0.2, device=DEVICE)
