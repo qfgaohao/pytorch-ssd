@@ -1,5 +1,4 @@
 import vision.utils.box_utils_numpy as box_utils
-from vision.datasets import voc_dataset
 from vision.utils.misc import Timer
 from vision.ssd.config.mobilenetv1_ssd_config import specs, center_variance, size_variance
 
@@ -56,11 +55,13 @@ if len(sys.argv) < 2:
     sys.exit(0)
 init_net_path = sys.argv[1]
 predict_net_path = sys.argv[2]
+label_path = sys.argv[3]
 
+class_names = [name.strip() for name in open(label_path).readlines()]
 predictor = load_model(init_net_path, predict_net_path)
 
-if len(sys.argv) >= 4:
-    cap = cv2.VideoCapture(sys.argv[3])  # capture from file
+if len(sys.argv) >= 5:
+    cap = cv2.VideoCapture(sys.argv[4])  # capture from file
 else:
     cap = cv2.VideoCapture(0)   # capture from camera
     cap.set(3, 1920)
@@ -87,7 +88,7 @@ while True:
     print('NMS Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.shape[0]))
     for i in range(boxes.shape[0]):
         box = boxes[i, :]
-        label = voc_dataset.class_names[labels[i]]
+        label = class_names[labels[i]]
         cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
 
         cv2.putText(orig_image, label,

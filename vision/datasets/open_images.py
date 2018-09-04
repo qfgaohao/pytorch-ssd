@@ -36,8 +36,8 @@ class OpenImagesDataset:
     def _read_data(self):
         annotation_file = f"{self.root}/sub-{self.dataset_type}-annotations-bbox.csv"
         annotations = pd.read_csv(annotation_file)
-        class_names = list(annotations['ClassName'].unique())
-        class_dict = {class_name: i + 1 for i, class_name in enumerate(class_names)}
+        class_names = ['BACKGROUND'] + sorted(list(annotations['ClassName'].unique()))
+        class_dict = {class_name: i for i, class_name in enumerate(class_names)}
         data = []
         for image_id, group in annotations.groupby("ImageID"):
             boxes = group.loc[:, ["XMin", "YMin", "XMax", "YMax"]].values.astype(np.float32)
@@ -54,10 +54,10 @@ class OpenImagesDataset:
 
     def __repr__(self):
         if self.class_stat is None:
-            self.class_stat = {name: 0 for name in self.class_names}
+            self.class_stat = {name: 0 for name in self.class_names[1:]}
             for example in self.data:
                 for class_index in example['labels']:
-                    class_name = self.class_names[class_index - 1]
+                    class_name = self.class_names[class_index]
                     self.class_stat[class_name] += 1
         content = ["Dataset Summary:"
                    f"Number of Images: {len(self.data)}",
@@ -77,7 +77,7 @@ class OpenImagesDataset:
         return image
 
     def _balance_data(self):
-        label_image_indexes = [set() for _ in range(len(self.class_names) + 1)]
+        label_image_indexes = [set() for _ in range(len(self.class_names))]
         for i, image in enumerate(self.data):
             for label_id in image['labels']:
                 label_image_indexes[label_id].add(i)

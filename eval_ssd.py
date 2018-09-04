@@ -1,7 +1,7 @@
 import torch
 from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv1_ssd_predictor
-from vision.datasets.voc_dataset import VOCDataset, class_names
+from vision.datasets.voc_dataset import VOCDataset
 from vision.utils import box_utils, measurements
 from vision.utils.misc import str2bool, Timer
 import argparse
@@ -14,6 +14,7 @@ parser.add_argument('--net', default="vgg16-ssd",
                     help="The network architecture, it can be mobilenet-v1-ssd or vgg16-ssd.")
 parser.add_argument("--trained_model", type=str)
 parser.add_argument("--dataset", type=str, help="The root directory of the VOC dataset.")
+parser.add_argument("--label_file", type=str, help="The label file path.")
 parser.add_argument("--use_cuda", type=str2bool, default=True)
 parser.add_argument("--use_2007_metric", type=str2bool, default=True)
 parser.add_argument("--nms_method", type=str, default="hard")
@@ -112,6 +113,8 @@ if __name__ == '__main__':
     eval_path = pathlib.Path(args.eval_dir)
     eval_path.mkdir(exist_ok=True)
     timer = Timer()
+    class_names = [name.strip() for name in open(args.label_file).readlines()]
+
     dataset = VOCDataset(args.dataset, is_test=True)
     true_case_stat, all_gb_boxes, all_difficult_cases = group_annotation_by_class(dataset)
     if args.net == 'vgg16-ssd':

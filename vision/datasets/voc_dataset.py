@@ -4,19 +4,6 @@ import xml.etree.ElementTree as ET
 import cv2
 
 
-class_names = ('BACKGROUND',
-    'aeroplane', 'bicycle', 'bird', 'boat',
-    'bottle', 'bus', 'car', 'cat', 'chair',
-    'cow', 'diningtable', 'dog', 'horse',
-    'motorbike', 'person', 'pottedplant',
-    'sheep', 'sofa', 'train', 'tvmonitor'
-)
-
-
-# class name to index
-class_dict = {class_name: i for i, class_name in enumerate(class_names)}
-
-
 class VOCDataset:
 
     def __init__(self, root, transform=None, target_transform=None, is_test=False, keep_difficult=False):
@@ -34,6 +21,15 @@ class VOCDataset:
             image_sets_file = self.root / "ImageSets/Main/trainval.txt"
         self.ids = VOCDataset._read_image_ids(image_sets_file)
         self.keep_difficult = keep_difficult
+
+        self.class_names = ('BACKGROUND',
+            'aeroplane', 'bicycle', 'bird', 'boat',
+            'bottle', 'bus', 'car', 'cat', 'chair',
+            'cow', 'diningtable', 'dog', 'horse',
+            'motorbike', 'person', 'pottedplant',
+            'sheep', 'sofa', 'train', 'tvmonitor'
+        )
+        self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
 
     def __getitem__(self, index):
         image_id = self.ids[index]
@@ -85,7 +81,7 @@ class VOCDataset:
             x2 = float(bbox.find('xmax').text) - 1
             y2 = float(bbox.find('ymax').text) - 1
             boxes.append([x1, y1, x2, y2])
-            labels.append(class_dict[class_name])
+            labels.append(self.class_dict[class_name])
             is_difficult_str = object.find('difficult').text
             is_difficult.append(int(is_difficult_str) if is_difficult_str else 0)
 
