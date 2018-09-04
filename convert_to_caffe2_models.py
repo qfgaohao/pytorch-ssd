@@ -14,8 +14,11 @@ if len(sys.argv) < 3:
 net_type = sys.argv[1]
 model_path = sys.argv[2]
 
+label_path = sys.argv[3]
 
-num_classes = len(voc_dataset.class_names)
+class_names = [name.strip() for name in open(label_path).readlines()]
+num_classes = len(class_names)
+
 if net_type == "mobilenet-v1-ssd":
     net = create_mobilenetv1_ssd(num_classes, is_test=True)
 else:
