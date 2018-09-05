@@ -48,6 +48,11 @@ parser.add_argument('--weight_decay', default=5e-4, type=float,
                     help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
+parser.add_argument('--base_net_lr', default=None, type=float,
+                    help='initial learning rate for base net.')
+parser.add_argument('--extra_layers_lr', default=None, type=float,
+                    help='initial learning rate for the layers not in base net and prediction heads.')
+
 
 # Params for loading pretrained basenet or checkpoints.
 parser.add_argument('--base_net',
@@ -224,18 +229,42 @@ if __name__ == '__main__':
     net = creat_net(num_classes)
     min_loss = -10000.0
     last_epoch = -1
-    params = net.parameters()
+
+    base_net_lr = args.base_net_lr if args.base_net_lr is not None else args.lr
+    extra_layers_lr = args.extra_layers_lr if args.extra_layers_lr is not None else args.lr
     if args.freeze_base_net:
+        logging.info("Freeze base net.")
         freeze_net_layers(net.base_net)
         params = itertools.chain(net.source_layer_add_ons.parameters(), net.extras.parameters(),
                                  net.regression_headers.parameters(), net.classification_headers.parameters())
-        logging.info("Freeze base net.")
-    if args.freeze_net:
+        params = [
+            {'params': itertools.chain(
+                net.source_layer_add_ons.parameters(),
+                net.extras.parameters()
+            ), 'lr': extra_layers_lr},
+            {'params': itertools.chain(
+                net.regression_headers.parameters(),
+                net.classification_headers.parameters()
+            )}
+        ]
+    elif args.freeze_net:
         freeze_net_layers(net.base_net)
         freeze_net_layers(net.source_layer_add_ons)
         freeze_net_layers(net.extras)
         params = itertools.chain(net.regression_headers.parameters(), net.classification_headers.parameters())
         logging.info("Freeze all the layers except prediction heads.")
+    else:
+        params = [
+            {'params': net.base_net.parameters(), 'lr': base_net_lr},
+            {'params': itertools.chain(
+                net.source_layer_add_ons.parameters(),
+                net.extras.parameters()
+            ), 'lr': extra_layers_lr},
+            {'params': itertools.chain(
+                net.regression_headers.parameters(),
+                net.classification_headers.parameters()
+            )}
+        ]
 
     timer.start("Load Model")
     if args.resume:
@@ -255,6 +284,8 @@ if __name__ == '__main__':
                              center_variance=0.1, size_variance=0.2, device=DEVICE)
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum,
                                 weight_decay=args.weight_decay)
+    logging.info(f"Learning rate: {args.lr}, Base net learning rate: {base_net_lr}, "
+                 + f"Extra Layers learning rate: {extra_layers_lr}.")
 
     if args.scheduler == 'multi-step':
         logging.info("Uses MultiStepLR scheduler.")
