@@ -89,10 +89,9 @@ class OpenImagesDataset:
         self.min_image_num = min(label_stat[1:])
         sample_image_indexes = set()
         for image_indexes in label_image_indexes[1:]:
-            image_indexes = list(image_indexes)
-            choice = np.random.choice(len(image_indexes), self.min_image_num)
-            for i in choice:
-                sample_image_indexes.add(image_indexes[i])
+            image_indexes = np.array(list(image_indexes))
+            sub = np.random.permutation(image_indexes)[:self.min_image_num]
+            sample_image_indexes.update(sub)
         sample_data = [self.data[i] for i in sample_image_indexes]
         return sample_data
 
