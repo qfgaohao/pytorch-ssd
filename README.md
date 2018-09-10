@@ -99,7 +99,7 @@ wget -P models https://storage.googleapis.com/models-hao/open-images-model-label
 python run_ssd_example.py mobilenet-v1-ssd models/gun_model_2.21.pth models/open-images-model-labels.txt ~/Downloads/big.JPG
 ```
 
-![Example of Gun Detection](gun.jpg  | width=500 )
+![Example of Gun Detection](gun.jpg)
 
 
 You manage to get more annotated data, the accuracy could become much higher.
