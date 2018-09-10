@@ -27,7 +27,7 @@ python run_ssd_live_demo.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pt
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_ssd_caffe2/mobilenet-v1-ssd_init_net.pb
 wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_ssd_caffe2/mobilenet-v1-ssd_predict_net.pb
-python run_ssd_live_caffe2.py models/mobilenetv1_ssd_init_net.pb models/mobilenetv1_ssd_predict_net.pb models/voc-model-labels.txt 
+python run_ssd_live_caffe2.py models/mobilenet-v1-ssd_init_net.pb models/mobilenet-v1-ssd_predict_net.pb models/voc-model-labels.txt 
 ```
 
 ## Pretrained Models
