@@ -13,6 +13,7 @@ on the open image dataset.
 2. OpenCV
 3. Pytorch 0.4+
 4. Caffe2
+5. Pandas
 
 ## Run the demo
 ### Run the live Mobilenet SSD demo
