@@ -5,7 +5,7 @@ import cv2
 import sys
 
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 4:
     print('Usage: python run_ssd_example.py <net type>  <model path> [video file]')
     sys.exit(0)
 net_type = sys.argv[1]
