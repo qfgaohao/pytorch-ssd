@@ -3,8 +3,9 @@
 This repo implements [SSD (Single Shot MultiBox Detector)](https://arxiv.org/abs/1512.02325). The implementation is heavily influenced by the projects [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) and [Detectron](https://github.com/facebookresearch/Detectron).
 The design goal is modularity and extensibility.
 
-Currently, it has mobilenet based SSD and VGG based SSD. The models can also be easily re-trained
-on the open image dataset.
+Currently, it has mobilenet based SSD and VGG based SSD. 
+
+It also has out-of-box support for retraining on Google Open Images dataset.
 
 ![Example of Mobile SSD](run_ssd_example_output.jpg "Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.")
 
@@ -103,7 +104,7 @@ python run_ssd_example.py mobilenet-v1-ssd models/gun_model_2.21.pth models/open
 ![Example of Gun Detection](gun.jpg)
 
 
-You manage to get more annotated data, the accuracy could become much higher.
+If you manage to get more annotated data, the accuracy could become much higher.
 
 ### Download data
 
