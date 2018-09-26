@@ -166,6 +166,5 @@ python run_ssd_example.py mobilenet-v1-ssd models/mobilenet-v1-ssd-Epoch-99-Loss
 
 ## TODO
 
-1. Modify VGG to make it ONNX friendly.
-2. Resnet34 Based Model.
-3. BatchNorm Fusion.
+1. Resnet34 Based Model.
+2. BatchNorm Fusion.
