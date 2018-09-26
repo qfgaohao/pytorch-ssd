@@ -1,6 +1,5 @@
 import torch
-from torch.nn import Conv2d, Sequential, ModuleList, ReLU
-from ..nn.scaled_l2_norm import ScaledL2Norm
+from torch.nn import Conv2d, Sequential, ModuleList, ReLU, BatchNorm2d
 from ..nn.vgg import vgg
 
 from .ssd import SSD
@@ -14,7 +13,7 @@ def create_vgg_ssd(num_classes, is_test=False):
     base_net = ModuleList(vgg(vgg_config))
 
     source_layer_indexes = [
-        (23, ScaledL2Norm(512, 20)),
+        (23, BatchNorm2d(512)),
         len(base_net),
     ]
     extras = ModuleList([
