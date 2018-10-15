@@ -8,11 +8,17 @@ from vision.utils.misc import str2bool, Timer
 import argparse
 import pathlib
 import numpy as np
+import logging
+import sys
 
 
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="vgg16-ssd",
-                    help="The network architecture, it can be mobilenet-v1-ssd or vgg16-ssd.")
+                    help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite or vgg16-ssd.")
+parser.add_argument('--expansion_rate', default=2, type=int,
+                    help='Expansion rate for ssd lite.')
+parser.add_argument('--expansion_rate', default=2, type=int,
+                    help='Expansion rate for ssd lite.')
 parser.add_argument("--trained_model", type=str)
 parser.add_argument("--dataset", type=str, help="The root directory of the VOC dataset.")
 parser.add_argument("--label_file", type=str, help="The label file path.")
@@ -123,7 +129,7 @@ if __name__ == '__main__':
     elif args.net == 'mb1-ssd':
         net = create_mobilenetv1_ssd(len(class_names), is_test=True)
     elif args.net == 'mb1-ssd-lite':
-        net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
+        net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True, expansion_rate=args.expansion_rate)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
