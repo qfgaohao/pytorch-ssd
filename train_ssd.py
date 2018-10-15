@@ -12,6 +12,7 @@ from vision.utils.misc import str2bool, Timer, freeze_net_layers, store_labels
 from vision.ssd.ssd import MatchPrior
 from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
+from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
 from vision.ssd.fpn_mobilenetv1_ssd import create_fpn_mobilenetv1_ssd
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
@@ -33,7 +34,7 @@ parser.add_argument('--balance_data', action='store_true',
 
 
 parser.add_argument('--net', default="vgg16-ssd",
-                    help="The network architecture, it can be fpn-mobilenet-v1-ssd, mobilenet-v1-ssd or vgg16-ssd.")
+                    help="The network architecture, it can be mb1-ssd mb1-lite-ssd or vgg16-ssd.")
 parser.add_argument('--freeze_base_net', action='store_true',
                     help="Freeze base net layers.")
 parser.add_argument('--freeze_net', action='store_true',
@@ -165,13 +166,13 @@ if __name__ == '__main__':
 
     logging.info(args)
     if args.net == 'vgg16-ssd':
-        creat_net = create_vgg_ssd
+        create_net = create_vgg_ssd
         config = vgg_ssd_config
-    elif args.net == 'mobilenet-v1-ssd':
-        creat_net = create_mobilenetv1_ssd
+    elif args.net == 'mb1-ssd':
+        create_net = create_mobilenetv1_ssd
         config = mobilenetv1_ssd_config
-    elif args.net == 'fpn-mobilenet-v1-ssd':
-        creat_net = create_fpn_mobilenetv1_ssd
+    elif args.net == 'mb1-ssd-lite':
+        create_net = create_mobilenetv1_ssd_lite
         config = mobilenetv1_ssd_config
     else:
         logging.fatal("The net type is wrong.")
@@ -226,7 +227,7 @@ if __name__ == '__main__':
                             num_workers=args.num_workers,
                             shuffle=False)
     logging.info("Build network.")
-    net = creat_net(num_classes)
+    net = create_net(num_classes)
     min_loss = -10000.0
     last_epoch = -1
 
