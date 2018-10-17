@@ -149,9 +149,6 @@ if __name__ == '__main__':
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
         sys.exit(1)
-        
-
-    
 
     results = []
     for i in range(len(dataset)):
