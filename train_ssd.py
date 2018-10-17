@@ -35,8 +35,6 @@ parser.add_argument('--balance_data', action='store_true',
 
 parser.add_argument('--net', default="vgg16-ssd",
                     help="The network architecture, it can be mb1-ssd, mb1-lite-ssd or vgg16-ssd.")
-parser.add_argument('--expansion_rate', default=2, type=int,
-                    help='Expansion rate for ssd lite.')
 parser.add_argument('--freeze_base_net', action='store_true',
                     help="Freeze base net layers.")
 parser.add_argument('--freeze_net', action='store_true',
@@ -174,7 +172,7 @@ if __name__ == '__main__':
         create_net = create_mobilenetv1_ssd
         config = mobilenetv1_ssd_config
     elif args.net == 'mb1-ssd-lite':
-        create_net = lambda num_classes: create_mobilenetv1_ssd_lite(num_classes, expansion_rate=args.expansion_rate)
+        create_net = create_mobilenetv1_ssd_lite
         config = mobilenetv1_ssd_config
     else:
         logging.fatal("The net type is wrong.")
