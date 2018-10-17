@@ -1,9 +1,10 @@
 from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv1_ssd_predictor
+from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite, create_mobilenetv1_ssd_lite_predictor
+
 from vision.utils.misc import Timer
 import cv2
 import sys
-
 
 if len(sys.argv) < 4:
     print('Usage: python run_ssd_example.py <net type>  <model path> [video file]')
@@ -21,15 +22,29 @@ else:
 
 class_names = [name.strip() for name in open(label_path).readlines()]
 num_classes = len(class_names)
-if net_type == "mobilenet-v1-ssd":
-    net = create_mobilenetv1_ssd(num_classes, is_test=True)
+
+
+if net_type == 'vgg16-ssd':
+    net = create_vgg_ssd(len(class_names), is_test=True)
+elif net_type == 'mb1-ssd':
+    net = create_mobilenetv1_ssd(len(class_names), is_test=True)
+elif net_type == 'mb1-ssd-lite':
+    net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
 else:
-    net = create_vgg_ssd(num_classes, is_test=True)
+    print("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
+    sys.exit(1)
 net.load(model_path)
-if net_type == "mobilenet-v1-ssd":
-    predictor = create_mobilenetv1_ssd_predictor(net, candidate_size=200)
-else:
+
+if net_type == 'vgg16-ssd':
     predictor = create_vgg_ssd_predictor(net, candidate_size=200)
+elif net_type == 'mb1-ssd':
+    predictor = create_mobilenetv1_ssd_predictor(net, candidate_size=200)
+elif net_type == 'mb1-ssd-lite':
+    predictor = create_mobilenetv1_ssd_lite_predictor(net, candidate_size=200)
+else:
+    print("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
+    sys.exit(1)
+
 
 timer = Timer()
 while True:
