@@ -78,13 +78,13 @@ The dataset path is the parent directory of the folders: Annotations, ImageSets,
 ## Evaluation
 
 ```bash
-python eval_ssd.py --net mobilenet-v1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth --label_file models/voc-model-labels.txt 
+python eval_ssd.py --net mb1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth --label_file models/voc-model-labels.txt 
 ```
 
 ## Convert models to ONNX and Caffe2 models
 
 ```bash
-python convert_to_caffe2_models.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
+python convert_to_caffe2_models.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
 ```
 
 The converted models are models/mobilenet-v1-ssd.onnx, models/mobilenet-v1-ssd_init_net.pb and models/mobilenet-v1-ssd_predict_net.pb. The models in the format of pbtxt are also saved for reference.
@@ -98,7 +98,7 @@ Before you start you can try the demo.
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/gun_model_2.21.pth
 wget -P models https://storage.googleapis.com/models-hao/open-images-model-labels.txt
-python run_ssd_example.py mobilenet-v1-ssd models/gun_model_2.21.pth models/open-images-model-labels.txt ~/Downloads/big.JPG
+python run_ssd_example.py mb1-ssd models/gun_model_2.21.pth models/open-images-model-labels.txt ~/Downloads/big.JPG
 ```
 
 ![Example of Gun Detection](gun.jpg)
@@ -129,7 +129,7 @@ is the annotation file.
 ### Retrain
 
 ```bash
-python train_ssd.py --dataset_type open_images --datasets ~/data/open_images --net mobilenet-v1-ssd --pretrained_ssd models/mobilenet-v1-ssd-mp-0_675.pth --scheduler cosine --lr 0.01 --t_max 100 --validation_epochs 5 --num_epochs 100 --base_net_lr 0.001  --batch_size 5
+python train_ssd.py --dataset_type open_images --datasets ~/data/open_images --net mb1-ssd --pretrained_ssd models/mobilenet-v1-ssd-mp-0_675.pth --scheduler cosine --lr 0.01 --t_max 100 --validation_epochs 5 --num_epochs 100 --base_net_lr 0.001  --batch_size 5
 ```
 
 You can freeze the base net, or all the layers except the prediction heads. 
@@ -160,7 +160,7 @@ a handy option to roughly balance the data.
 ### Test on image
 
 ```bash
-python run_ssd_example.py mobilenet-v1-ssd models/mobilenet-v1-ssd-Epoch-99-Loss-2.2184619531035423.pth models/open-images-model-labels.txt ~/Downloads/gun.JPG
+python run_ssd_example.py mb1-ssd models/mobilenet-v1-ssd-Epoch-99-Loss-2.2184619531035423.pth models/open-images-model-labels.txt ~/Downloads/gun.JPG
 ```
 
 
