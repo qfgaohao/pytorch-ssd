@@ -1,6 +1,6 @@
 import torch
-from torch.nn import Conv2d, Sequential, ModuleList, ReLU, BatchNorm2d
-from torchvision import models
+from torch.nn import Conv2d, Sequential, ModuleList, ReLU
+from ..nn.squeezenet import squeezenet1_1
 
 from .ssd import SSD
 from .predictor import Predictor
@@ -19,7 +19,7 @@ def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=
 
 
 def create_squeezenet_ssd_lite(num_classes, is_test=False):
-    base_net = models.squeezenet1_1(False).features  # disable dropout layer
+    base_net = squeezenet1_1(False).features  # disable dropout layer
 
     source_layer_indexes = [
         12
