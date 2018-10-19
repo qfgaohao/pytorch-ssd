@@ -4,7 +4,7 @@ from torchvision import models
 
 from .ssd import SSD
 from .predictor import Predictor
-from .config import mobilenetv1_ssd_config as config
+from .config import squeezenet_ssd_config as config
 
 
 def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0):
@@ -28,7 +28,7 @@ def create_squeezenet_ssd_lite(num_classes, is_test=False):
         Sequential(
             Conv2d(in_channels=512, out_channels=256, kernel_size=1),
             ReLU(),
-            SeperableConv2d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1),
+            SeperableConv2d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=2),
         ),
         Sequential(
             Conv2d(in_channels=512, out_channels=256, kernel_size=1),

@@ -19,6 +19,7 @@ from vision.datasets.open_images import OpenImagesDataset
 from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
 from vision.ssd.config import mobilenetv1_ssd_config
+from vision.ssd.config import squeezenet_ssd_config
 from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
 parser = argparse.ArgumentParser(
@@ -177,7 +178,7 @@ if __name__ == '__main__':
         config = mobilenetv1_ssd_config
     elif args.net == 'sq-ssd-lite':
         create_net = create_squeezenet_ssd_lite
-        config = mobilenetv1_ssd_config
+        config = squeezenet_ssd_config
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
