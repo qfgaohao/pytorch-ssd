@@ -127,7 +127,7 @@ if __name__ == '__main__':
         net = create_mobilenetv1_ssd(len(class_names), is_test=True)
     elif args.net == 'mb1-ssd-lite':
         net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
-    elif net_type == 'sq-ssd-lite':
+    elif args.net == 'sq-ssd-lite':
         net = create_squeezenet_ssd_lite(len(class_names), is_test=True)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
@@ -144,8 +144,8 @@ if __name__ == '__main__':
         predictor = create_mobilenetv1_ssd_predictor(net, nms_method=args.nms_method, device=DEVICE)
     elif args.net == 'mb1-ssd-lite':
         predictor = create_mobilenetv1_ssd_lite_predictor(net, nms_method=args.nms_method, device=DEVICE)
-    elif net_type == 'sq-ssd-lite':
-        predictor = create_squeezenet_ssd_lite_predictor(net, candidate_size=200)
+    elif args.net == 'sq-ssd-lite':
+        predictor = create_squeezenet_ssd_lite_predictor(net,nms_method=args.nms_method, device=DEVICE)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
