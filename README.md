@@ -22,7 +22,7 @@ It also has out-of-box support for retraining on Google Open Images dataset.
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/mobilenet-v1-ssd-mp-0_675.pth
 wget -P models https://storage.googleapis.com/models-hao/voc-model-labels.txt
-python run_ssd_live_demo.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
+python run_ssd_live_demo.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
 ```
 ### Run the live demo in Caffe2
 
@@ -68,7 +68,7 @@ Average Precision Across All Classes:0.6755
 
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_with_relu_69_5.pth
-python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mobilenet-v1-ssd --base_net models/mobilenet_v1_with_relu_69_5.pth  --batch_size 24 --num_epochs 200 --scheduler cosine --lr 0.01 --t_max 200
+python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mb1-ssd --base_net models/mobilenet_v1_with_relu_69_5.pth  --batch_size 24 --num_epochs 200 --scheduler cosine --lr 0.01 --t_max 200
 ```
 
 
