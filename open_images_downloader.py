@@ -78,6 +78,8 @@ def parse_args():
                         help="the classes you want to download.")
     parser.add_argument("--retry", type=int, default=10,
                         help="retry times when downloading.")
+    parser.add_argument("--filter_file", type=str, default="",
+                        help="This file specifies the image ids you want to exclude.")
     return parser.parse_args()
 
 
@@ -91,6 +93,14 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.root):
         os.makedirs(args.root)
+
+    excluded_images = set()
+    if args.filter_file:
+        for line in open(args.filter_file):
+            img_id = line.strip()
+            if not img_id:
+                continue
+            excluded_images.add(img_id)
 
     class_description_file = os.path.join(args.root, "class-descriptions-boxable.csv")
     if not os.path.exists(class_description_file):
@@ -119,6 +129,7 @@ if __name__ == '__main__':
                                how="inner")
         if not args.include_depiction:
             annotations = annotations.loc[:, annotations['IsDepiction'] != 1]
+        annotations = annotations.loc[~annotations['ImageID'].isin(excluded_images)]
         logging.warning(f"{dataset_type} data size: {annotations.shape[0]}")
         log_counts(annotations['ClassName'])
 
@@ -126,6 +137,6 @@ if __name__ == '__main__':
         logging.warning(f"Save {dataset_type} data to {sub_annotation_file}.")
         annotations.to_csv(sub_annotation_file, index=False)
         image_files.extend(f"{dataset_type}/{id}.jpg" for id in set(annotations['ImageID']))
-    logging.warning(f"Start downloading {len(image_files)}images.")
+    logging.warning(f"Start downloading {len(image_files)} images.")
     batch_download(bucket, image_files, args.root, args.num_workers, args.retry)
     logging.warning("Task Done.")
