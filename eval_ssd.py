@@ -4,6 +4,7 @@ from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite, create_mobilenetv1_ssd_lite_predictor
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite, create_squeezenet_ssd_lite_predictor
 from vision.datasets.voc_dataset import VOCDataset
+from vision.datasets.open_images import OpenImagesDataset
 from vision.utils import box_utils, measurements
 from vision.utils.misc import str2bool, Timer
 import argparse
@@ -17,7 +18,10 @@ parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="vgg16-ssd",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite or vgg16-ssd.")
 parser.add_argument("--trained_model", type=str)
-parser.add_argument("--dataset", type=str, help="The root directory of the VOC dataset.")
+
+parser.add_argument("--dataset_type", default="voc", type=str,
+                    help='Specify dataset type. Currently support voc and open_images.')
+parser.add_argument("--dataset", type=str, help="The root directory of the VOC dataset or Open Images dataset.")
 parser.add_argument("--label_file", type=str, help="The label file path.")
 parser.add_argument("--use_cuda", type=str2bool, default=True)
 parser.add_argument("--use_2007_metric", type=str2bool, default=True)
@@ -119,7 +123,11 @@ if __name__ == '__main__':
     timer = Timer()
     class_names = [name.strip() for name in open(args.label_file).readlines()]
 
-    dataset = VOCDataset(args.dataset, is_test=True)
+    if args.dataset_type == "voc":
+        dataset = VOCDataset(args.dataset, is_test=True)
+    elif args.dataset_type == 'open_images':
+        dataset = OpenImagesDataset(args.dataset, dataset_type="test")
+
     true_case_stat, all_gb_boxes, all_difficult_cases = group_annotation_by_class(dataset)
     if args.net == 'vgg16-ssd':
         net = create_vgg_ssd(len(class_names), is_test=True)
