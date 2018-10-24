@@ -10,7 +10,7 @@ It also has out-of-box support for retraining on Google Open Images dataset.
 ![Example of Mobile SSD](run_ssd_example_output.jpg "Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.")
 
 ## Dependencies
-1. Python 3.5+
+1. Python 3.6+
 2. OpenCV
 3. Pytorch 0.4+
 4. Caffe2
