@@ -89,7 +89,16 @@ if __name__ == '__main__':
 
     args = parse_args()
     bucket = "open-images-dataset"
-    class_names = [e.strip() for e in args.class_names.split(",")]
+    names = [e.strip() for e in args.class_names.split(",")]
+    class_names = []
+    group_filters = []
+    for name in names:
+        t = name.split(":")
+        class_names.append(t[0].strip())
+        if len(t) >= 2:
+            group_filters.append(t[1].strip())
+        else:
+            group_filters.append("")
 
     if not os.path.exists(args.root):
         os.makedirs(args.root)
@@ -128,10 +137,26 @@ if __name__ == '__main__':
                                left_on="LabelName", right_on="id",
                                how="inner")
         if not args.include_depiction:
-            annotations = annotations.loc[:, annotations['IsDepiction'] != 1]
-        annotations = annotations.loc[~annotations['ImageID'].isin(excluded_images)]
+            annotations = annotations.loc[annotations['IsDepiction'] != 1, :]
+        annotations = annotations.loc[~annotations['ImageID'].isin(excluded_images), :]
+
+        # TODO MAKE IT MORE EFFICIENT
+        #filter by IsGroupOf
+        filtered = []
+        for class_name, group_filter in zip(class_names, group_filters):
+            sub = annotations.loc[annotations['ClassName'] == class_name, :]
+            if group_filter == "group":
+                sub = sub.loc[sub['IsGroupOf'] == 1, :]
+            elif group_filter == '~group':
+                sub = sub.loc[sub['IsGroupOf'] == 0, :]
+            filtered.append(sub)
+        annotations = pd.concat(filtered)
+
         logging.warning(f"{dataset_type} data size: {annotations.shape[0]}")
         log_counts(annotations['ClassName'])
+
+        logging.warning(f"Shuffle dataset.")
+        annotations = annotations.sample(frac=1.0)
 
         sub_annotation_file = f"{args.root}/sub-{dataset_type}-annotations-bbox.csv"
         logging.warning(f"Save {dataset_type} data to {sub_annotation_file}.")
