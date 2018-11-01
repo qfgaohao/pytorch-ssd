@@ -13,12 +13,13 @@ from vision.ssd.ssd import MatchPrior
 from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
-from vision.ssd.fpn_mobilenetv1_ssd import create_fpn_mobilenetv1_ssd
+from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
 from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
 from vision.ssd.config import mobilenetv1_ssd_config
+from vision.ssd.config import squeezenet_ssd_config
 from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
 parser = argparse.ArgumentParser(
@@ -92,10 +93,14 @@ parser.add_argument('--checkpoint_folder', default='models/',
                     help='Directory for saving checkpoint models')
 
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 args = parser.parse_args()
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
+
 if args.use_cuda and torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
+    logging.info("Use Cuda.")
 
 
 def train(loader, net, criterion, optimizer, device, debug_steps=100, epoch=-1):
@@ -159,9 +164,6 @@ def test(loader, net, criterion, device):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
     timer = Timer()
 
     logging.info(args)
@@ -174,6 +176,9 @@ if __name__ == '__main__':
     elif args.net == 'mb1-ssd-lite':
         create_net = create_mobilenetv1_ssd_lite
         config = mobilenetv1_ssd_config
+    elif args.net == 'sq-ssd-lite':
+        create_net = create_squeezenet_ssd_lite
+        config = squeezenet_ssd_config
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
@@ -219,7 +224,7 @@ if __name__ == '__main__':
     elif args.dataset_type == 'open_images':
         val_dataset = OpenImagesDataset(dataset_path,
                                         transform=test_transform, target_transform=target_transform,
-                                        dataset_type="validation")
+                                        dataset_type="test")
         logging.info(val_dataset)
     logging.info("validation dataset size: {}".format(len(val_dataset)))
 

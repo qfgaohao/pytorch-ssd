@@ -78,6 +78,10 @@ def parse_args():
                         help="the classes you want to download.")
     parser.add_argument("--retry", type=int, default=10,
                         help="retry times when downloading.")
+    parser.add_argument("--filter_file", type=str, default="",
+                        help="This file specifies the image ids you want to exclude.")
+    parser.add_argument('--remove_overlapped', action='store_true',
+                        help="Remove single boxes covered by group boxes.")
     return parser.parse_args()
 
 
@@ -87,10 +91,32 @@ if __name__ == '__main__':
 
     args = parse_args()
     bucket = "open-images-dataset"
-    class_names = [e.strip() for e in args.class_names.split(",")]
+    names = [e.strip() for e in args.class_names.split(",")]
+    class_names = []
+    group_filters = []
+    percentages = []
+    for name in names:
+        t = name.split(":")
+        class_names.append(t[0].strip())
+        if len(t) >= 2 and t[1].strip():
+            group_filters.append(t[1].strip())
+        else:
+            group_filters.append("")
+        if len(t) >= 3 and t[2].strip():
+            percentages.append(float(t[2].strip()))
+        else:
+            percentages.append(1.0)
 
     if not os.path.exists(args.root):
         os.makedirs(args.root)
+
+    excluded_images = set()
+    if args.filter_file:
+        for line in open(args.filter_file):
+            img_id = line.strip()
+            if not img_id:
+                continue
+            excluded_images.add(img_id)
 
     class_description_file = os.path.join(args.root, "class-descriptions-boxable.csv")
     if not os.path.exists(class_description_file):
@@ -118,14 +144,42 @@ if __name__ == '__main__':
                                left_on="LabelName", right_on="id",
                                how="inner")
         if not args.include_depiction:
-            annotations = annotations.loc[:, annotations['IsDepiction'] != 1]
-        logging.warning(f"{dataset_type} data size: {annotations.shape[0]}")
+            annotations = annotations.loc[annotations['IsDepiction'] != 1, :]
+
+        # TODO MAKE IT MORE EFFICIENT
+        #filter by IsGroupOf
+        filtered = []
+        for class_name, group_filter, percentage in zip(class_names, group_filters, percentages):
+            sub = annotations.loc[annotations['ClassName'] == class_name, :]
+            if group_filter == "group":
+                sub = sub.loc[sub['IsGroupOf'] == 1, :]
+            elif group_filter == '~group':
+                sub = sub.loc[sub['IsGroupOf'] == 0, :]
+            excluded_images |= set(sub['ImageID'].sample(frac=1 - percentage))
+            filtered.append(sub)
+
+        annotations = pd.concat(filtered)
+        annotations = annotations.loc[~annotations['ImageID'].isin(excluded_images), :]
+
+
+        if args.remove_overlapped:
+            images_with_group = annotations.loc[annotations['IsGroupOf'] == 1, 'ImageID']
+            annotations = annotations.loc[~(annotations['ImageID'].isin(set(images_with_group)) & (annotations['IsGroupOf'] == 0)), :]
+        annotations = annotations.sample(frac=1.0)
+
+        logging.warning(f"{dataset_type} bounding boxes size: {annotations.shape[0]}")
+        logging.warning("Approximate Image Stats: ")
+        log_counts(annotations.drop_duplicates(["ImageID", "ClassName"])["ClassName"])
+        logging.warning("Label distribution: ")
         log_counts(annotations['ClassName'])
+
+        logging.warning(f"Shuffle dataset.")
+
 
         sub_annotation_file = f"{args.root}/sub-{dataset_type}-annotations-bbox.csv"
         logging.warning(f"Save {dataset_type} data to {sub_annotation_file}.")
         annotations.to_csv(sub_annotation_file, index=False)
         image_files.extend(f"{dataset_type}/{id}.jpg" for id in set(annotations['ImageID']))
-    logging.warning(f"Start downloading {len(image_files)}images.")
+    logging.warning(f"Start downloading {len(image_files)} images.")
     batch_download(bucket, image_files, args.root, args.num_workers, args.retry)
     logging.warning("Task Done.")

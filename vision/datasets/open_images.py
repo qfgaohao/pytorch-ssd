@@ -19,10 +19,11 @@ class OpenImagesDataset:
         self.min_image_num = -1
         if self.balance_data:
             self.data = self._balance_data()
+        self.ids = [info['image_id'] for info in self.data]
 
         self.class_stat = None
 
-    def __getitem__(self, index):
+    def _getitem(self, index):
         image_info = self.data[index]
         image = self._read_image(image_info['image_id'])
         boxes = image_info['boxes']
@@ -35,7 +36,24 @@ class OpenImagesDataset:
             image, boxes, labels = self.transform(image, boxes, labels)
         if self.target_transform:
             boxes, labels = self.target_transform(boxes, labels)
+        return image_info['image_id'], image, boxes, labels
+
+    def __getitem__(self, index):
+        _, image, boxes, labels = self._getitem(index)
         return image, boxes, labels
+
+    def get_annotation(self, index):
+        """To conform the eval_ssd implementation that is based on the VOC dataset."""
+        image_id, image, boxes, labels = self._getitem(index)
+        is_difficult = np.zeros(boxes.shape[0], dtype=np.uint8)
+        return image_id, (boxes, labels, is_difficult)
+
+    def get_image(self, index):
+        image_info = self.data[index]
+        image = self._read_image(image_info['image_id'])
+        if self.transform:
+            image, _ = self.transform(image)
+        return image
 
     def _read_data(self):
         annotation_file = f"{self.root}/sub-{self.dataset_type}-annotations-bbox.csv"
