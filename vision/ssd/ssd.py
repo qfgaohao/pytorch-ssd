@@ -5,6 +5,8 @@ from typing import List, Tuple
 import torch.nn.functional as F
 
 from ..utils import box_utils
+from collections import namedtuple
+GraphPath = namedtuple("GraphPath", ['s0', 'name', 's1'])  #
 
 
 class SSD(nn.Module):
@@ -25,7 +27,8 @@ class SSD(nn.Module):
         self.config = config
 
         # register layers in source_layer_indexes by adding them to a module list
-        self.source_layer_add_ons = nn.ModuleList([t[1] for t in source_layer_indexes if isinstance(t, tuple)])
+        self.source_layer_add_ons = nn.ModuleList([t[1] for t in source_layer_indexes
+                                                   if isinstance(t, tuple) and not isinstance(t, GraphPath)])
         if device:
             self.device = device
         else:
@@ -40,19 +43,32 @@ class SSD(nn.Module):
         start_layer_index = 0
         header_index = 0
         for end_layer_index in self.source_layer_indexes:
-
-            if isinstance(end_layer_index, tuple):
+            if isinstance(end_layer_index, GraphPath):
+                path = end_layer_index
+                end_layer_index = end_layer_index.s0
+                added_layer = None
+            elif isinstance(end_layer_index, tuple):
                 added_layer = end_layer_index[1]
                 end_layer_index = end_layer_index[0]
+                path = None
             else:
                 added_layer = None
+                path = None
             for layer in self.base_net[start_layer_index: end_layer_index]:
                 x = layer(x)
-            start_layer_index = end_layer_index
             if added_layer:
                 y = added_layer(x)
             else:
                 y = x
+            if path:
+                sub = getattr(self.base_net[end_layer_index], path.name)
+                for layer in sub[:path.s1]:
+                    x = layer(x)
+                y = x
+                for layer in sub[path.s1:]:
+                    x = layer(x)
+                end_layer_index += 1
+            start_layer_index = end_layer_index
             confidence, location = self.compute_header(header_index, y)
             header_index += 1
             confidences.append(confidence)

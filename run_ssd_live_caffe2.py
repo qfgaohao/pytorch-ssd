@@ -83,12 +83,13 @@ while True:
     interval = timer.end()
     print('Inference Time: {:.2f}s.'.format(interval))
     timer.start()
-    boxes, labels, probs = predict(orig_image.shape[1], orig_image.shape[0], confidences, boxes, 0.4)
+    boxes, labels, probs = predict(orig_image.shape[1], orig_image.shape[0], confidences, boxes, 0.55)
     interval = timer.end()
     print('NMS Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.shape[0]))
     for i in range(boxes.shape[0]):
         box = boxes[i, :]
-        label = class_names[labels[i]]
+        label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
+
         cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
 
         cv2.putText(orig_image, label,
