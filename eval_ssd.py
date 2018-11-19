@@ -12,11 +12,12 @@ import pathlib
 import numpy as np
 import logging
 import sys
+from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite, create_mobilenetv2_ssd_lite_predictor
 
 
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="vgg16-ssd",
-                    help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite or vgg16-ssd.")
+                    help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite or vgg16-ssd.")
 parser.add_argument("--trained_model", type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
@@ -28,7 +29,8 @@ parser.add_argument("--use_2007_metric", type=str2bool, default=True)
 parser.add_argument("--nms_method", type=str, default="hard")
 parser.add_argument("--iou_threshold", type=float, default=0.5, help="The threshold of Intersection over Union.")
 parser.add_argument("--eval_dir", default="eval_results", type=str, help="The directory to store evaluation results.")
-
+parser.add_argument('--mb2_width_mult', default=1.0, type=float,
+                    help='Width Multiplifier for MobilenetV2')
 args = parser.parse_args()
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
 
@@ -137,6 +139,8 @@ if __name__ == '__main__':
         net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
     elif args.net == 'sq-ssd-lite':
         net = create_squeezenet_ssd_lite(len(class_names), is_test=True)
+    elif args.net == 'mb2-ssd-lite':
+        net = create_mobilenetv2_ssd_lite(len(class_names), width_mult=args.mb2_width_mult, is_test=True)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
@@ -154,6 +158,8 @@ if __name__ == '__main__':
         predictor = create_mobilenetv1_ssd_lite_predictor(net, nms_method=args.nms_method, device=DEVICE)
     elif args.net == 'sq-ssd-lite':
         predictor = create_squeezenet_ssd_lite_predictor(net,nms_method=args.nms_method, device=DEVICE)
+    elif args.net == 'mb2-ssd-lite':
+        predictor = create_mobilenetv2_ssd_lite_predictor(net, nms_method=args.nms_method, device=DEVICE)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)

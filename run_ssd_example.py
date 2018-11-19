@@ -15,12 +15,12 @@ image_path = sys.argv[4]
 
 class_names = [name.strip() for name in open(label_path).readlines()]
 num_classes = len(class_names)
-if net_type == "mobilenet-v1-ssd":
+if net_type == "mb1-ssd":
     net = create_mobilenetv1_ssd(num_classes, is_test=True)
 else:
     net = create_vgg_ssd(num_classes, is_test=True)
 net.load(model_path)
-if net_type == "mobilenet-v1-ssd":
+if net_type == "mb1-ssd":
     predictor = create_mobilenetv1_ssd_predictor(net, candidate_size=200)
 else:
     predictor = create_vgg_ssd_predictor(net, candidate_size=200)
