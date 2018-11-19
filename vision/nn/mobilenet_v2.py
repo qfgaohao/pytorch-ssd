@@ -6,37 +6,42 @@ import math
 # BatchNorm Layer is optional to make it easy do batch norm confusion.
 
 
-def conv_bn(inp, oup, stride, use_batch_norm=True):
+def conv_bn(inp, oup, stride, use_batch_norm=True, onnx_compatible=False):
+    ReLU = nn.ReLU if onnx_compatible else nn.ReLU6
+
     if use_batch_norm:
         return nn.Sequential(
             nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
             nn.BatchNorm2d(oup),
-            nn.ReLU(inplace=True)
+            ReLU(inplace=True)
         )
     else:
         return nn.Sequential(
             nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
-            nn.ReLU(inplace=True)
+            ReLU(inplace=True)
         )
 
 
-def conv_1x1_bn(inp, oup, use_batch_norm=True):
+def conv_1x1_bn(inp, oup, use_batch_norm=True, onnx_compatible=False):
+    ReLU = nn.ReLU if onnx_compatible else nn.ReLU6
     if use_batch_norm:
         return nn.Sequential(
             nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
             nn.BatchNorm2d(oup),
-            nn.ReLU(inplace=True)
+            ReLU(inplace=True)
         )
     else:
         return nn.Sequential(
             nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
-            nn.ReLU(inplace=True)
+            ReLU(inplace=True)
         )
 
 
 class InvertedResidual(nn.Module):
-    def __init__(self, inp, oup, stride, expand_ratio, use_batch_norm=True):
+    def __init__(self, inp, oup, stride, expand_ratio, use_batch_norm=True, onnx_compatible=False):
         super(InvertedResidual, self).__init__()
+        ReLU = nn.ReLU if onnx_compatible else nn.ReLU6
+
         self.stride = stride
         assert stride in [1, 2]
 
@@ -49,7 +54,7 @@ class InvertedResidual(nn.Module):
                     # dw
                     nn.Conv2d(hidden_dim, hidden_dim, 3, stride, 1, groups=hidden_dim, bias=False),
                     nn.BatchNorm2d(hidden_dim),
-                    nn.ReLU(inplace=True),
+                    ReLU(inplace=True),
                     # pw-linear
                     nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
                     nn.BatchNorm2d(oup),
@@ -58,7 +63,7 @@ class InvertedResidual(nn.Module):
                 self.conv = nn.Sequential(
                     # dw
                     nn.Conv2d(hidden_dim, hidden_dim, 3, stride, 1, groups=hidden_dim, bias=False),
-                    nn.ReLU(inplace=True),
+                    ReLU(inplace=True),
                     # pw-linear
                     nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
                 )
@@ -68,11 +73,11 @@ class InvertedResidual(nn.Module):
                     # pw
                     nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
                     nn.BatchNorm2d(hidden_dim),
-                    nn.ReLU(inplace=True),
+                    ReLU(inplace=True),
                     # dw
                     nn.Conv2d(hidden_dim, hidden_dim, 3, stride, 1, groups=hidden_dim, bias=False),
                     nn.BatchNorm2d(hidden_dim),
-                    nn.ReLU(inplace=True),
+                    ReLU(inplace=True),
                     # pw-linear
                     nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
                     nn.BatchNorm2d(oup),
@@ -81,10 +86,10 @@ class InvertedResidual(nn.Module):
                 self.conv = nn.Sequential(
                     # pw
                     nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
-                    nn.ReLU(inplace=True),
+                    ReLU(inplace=True),
                     # dw
                     nn.Conv2d(hidden_dim, hidden_dim, 3, stride, 1, groups=hidden_dim, bias=False),
-                    nn.ReLU(inplace=True),
+                    ReLU(inplace=True),
                     # pw-linear
                     nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
                 )
@@ -97,7 +102,8 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV2(nn.Module):
-    def __init__(self, n_class=1000, input_size=224, width_mult=1., dropout_ratio=0.2, use_batch_norm=True):
+    def __init__(self, n_class=1000, input_size=224, width_mult=1., dropout_ratio=0.2,
+                 use_batch_norm=True, onnx_compatible=False):
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
         input_channel = 32
@@ -117,20 +123,23 @@ class MobileNetV2(nn.Module):
         assert input_size % 32 == 0
         input_channel = int(input_channel * width_mult)
         self.last_channel = int(last_channel * width_mult) if width_mult > 1.0 else last_channel
-        self.features = [conv_bn(3, input_channel, 2)]
+        self.features = [conv_bn(3, input_channel, 2, onnx_compatible=onnx_compatible)]
         # building inverted residual blocks
         for t, c, n, s in interverted_residual_setting:
             output_channel = int(c * width_mult)
             for i in range(n):
                 if i == 0:
                     self.features.append(block(input_channel, output_channel, s,
-                                               expand_ratio=t, use_batch_norm=use_batch_norm))
+                                               expand_ratio=t, use_batch_norm=use_batch_norm,
+                                               onnx_compatible=onnx_compatible))
                 else:
                     self.features.append(block(input_channel, output_channel, 1,
-                                               expand_ratio=t, use_batch_norm=use_batch_norm))
+                                               expand_ratio=t, use_batch_norm=use_batch_norm,
+                                               onnx_compatible=onnx_compatible))
                 input_channel = output_channel
         # building last several layers
-        self.features.append(conv_1x1_bn(input_channel, self.last_channel, use_batch_norm=use_batch_norm))
+        self.features.append(conv_1x1_bn(input_channel, self.last_channel,
+                                         use_batch_norm=use_batch_norm, onnx_compatible=onnx_compatible))
         # make it nn.Sequential
         self.features = nn.Sequential(*self.features)
 
@@ -162,7 +171,3 @@ class MobileNetV2(nn.Module):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
-
-
-mobilenet_v2_5 = MobileNetV2(width_mult=0.5)
-mobilenet_v2 = MobileNetV2()
