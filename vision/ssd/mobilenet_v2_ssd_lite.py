@@ -66,5 +66,5 @@ def create_mobilenetv2_ssd_lite_predictor(net, candidate_size=200, nms_method=No
                           iou_threshold=config.iou_threshold,
                           candidate_size=candidate_size,
                           sigma=sigma,
-                          deKvice=device)
+                          device=device)
     return predictor
