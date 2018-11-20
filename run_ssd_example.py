@@ -44,8 +44,7 @@ elif net_type == 'mb2-ssd-lite':
 elif net_type == 'sq-ssd-lite':
     predictor = create_squeezenet_ssd_lite_predictor(net, candidate_size=200)
 else:
-    print("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
-    sys.exit(1)
+    predictor = create_vgg_ssd_predictor(net, candidate_size=200)
 
 orig_image = cv2.imread(image_path)
 image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
