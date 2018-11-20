@@ -3,26 +3,27 @@
 This repo implements [SSD (Single Shot MultiBox Detector)](https://arxiv.org/abs/1512.02325). The implementation is heavily influenced by the projects [ssd.pytorch](https://github.com/amdegroot/ssd.pytorch) and [Detectron](https://github.com/facebookresearch/Detectron).
 The design goal is modularity and extensibility.
 
-Currently, it has mobilenet based SSD and VGG based SSD. 
+Currently, it has MobileNetV1, MobileNetV2, and VGG based SSD/SSD-Lite implementations. 
 
 It also has out-of-box support for retraining on Google Open Images dataset.
 
 ![Example of Mobile SSD](run_ssd_example_output.jpg "Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.")
 
 ## Dependencies
-1. Python 3.5+
+1. Python 3.6+
 2. OpenCV
 3. Pytorch 0.4+
 4. Caffe2
 5. Pandas
+6. Boto3 if you want to train models on the Google OpenImages Dataset.
 
 ## Run the demo
-### Run the live Mobilenet SSD demo
+### Run the live MobilenetV1 SSD demo
 
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/mobilenet-v1-ssd-mp-0_675.pth
 wget -P models https://storage.googleapis.com/models-hao/voc-model-labels.txt
-python run_ssd_live_demo.py mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
+python run_ssd_live_demo.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
 ```
 ### Run the live demo in Caffe2
 
@@ -31,6 +32,22 @@ wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_ssd_caffe2
 wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_ssd_caffe2/mobilenet-v1-ssd_predict_net.pb
 python run_ssd_live_caffe2.py models/mobilenet-v1-ssd_init_net.pb models/mobilenet-v1-ssd_predict_net.pb models/voc-model-labels.txt 
 ```
+
+You can see a decent speed boost by using Caffe2.
+
+### Run the live MobileNetV2 SSD Lite demo
+
+```bash
+wget -P models https://storage.googleapis.com/models-hao/mb2-ssd-lite-mp-0_686.pth
+wget -P models https://storage.googleapis.com/models-hao/voc-model-labels.txt
+python run_ssd_live_demo.py mb2-ssd-lite models/mb2-ssd-lite-mp-0_686.pth models/voc-model-labels.txt 
+```
+
+The above MobileNetV2 SSD-Lite model is not ONNX-Compatible, as it uses Relu6 which is not supported by ONNX.
+The code supports the ONNX-Compatible version. Once I have trained a good enough MobileNetV2 model with Relu, I will upload
+the corresponding Pytorch and Caffe2 models.
+
+You may notice MobileNetV2 SSD/SSD-Lite is slower than MobileNetV1 SSD/Lite on PC. However, MobileNetV2 is faster on mobile devices.
 
 ## Pretrained Models
 
@@ -64,11 +81,46 @@ tvmonitor: 0.6459903029666852
 Average Precision Across All Classes:0.6755
 ```
 
+### MobileNetV2 SSD-Lite
+
+```
+Average Precision Per-class:
+aeroplane: 0.6973327307871002
+bicycle: 0.7823755921687233
+bird: 0.6342429230125619
+boat: 0.5478160937380846
+bottle: 0.3564069147093762
+bus: 0.7882037885117419
+car: 0.7444122242934775
+cat: 0.8198865557991936
+chair: 0.5378973422880109
+cow: 0.6186076149254742
+diningtable: 0.7369559500950861
+dog: 0.7848265495754562
+horse: 0.8222948787839229
+motorbike: 0.8057808854619948
+person: 0.7176976451996411
+pottedplant: 0.42802932547480066
+sheep: 0.6259124005994047
+sofa: 0.7840368059271103
+train: 0.8331588002612781
+tvmonitor: 0.6555051795079904
+Average Precision Across All Classes:0.6860690100560214
+```
+
+The parameters to re-produce the model:
+
+```bash
+wget -P models https://storage.googleapis.com/models-hao/mb2-imagenet-71_8.pth
+python train_ssd.py --dataset_type voc  --datasets ~/data/VOC0712/VOC2007 ~/data/VOC0712/VOC2012 --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mb2-ssd-lite --base_net models/mb2-imagenet-71_8.pth  --scheduler cosine --lr 0.01 --t_max 200 --validation_epochs 5 --num_epochs 20
+```
+
+
 ## Training
 
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_with_relu_69_5.pth
-python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mobilenet-v1-ssd --base_net models/mobilenet_v1_with_relu_69_5.pth  --batch_size 24 --num_epochs 200 --scheduler cosine --lr 0.01 --t_max 200
+python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mb1-ssd --base_net models/mobilenet_v1_with_relu_69_5.pth  --batch_size 24 --num_epochs 200 --scheduler cosine --lr 0.01 --t_max 200
 ```
 
 
