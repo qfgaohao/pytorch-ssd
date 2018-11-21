@@ -83,6 +83,8 @@ Average Precision Across All Classes:0.6755
 
 ### MobileNetV2 SSD-Lite
 
+URL: https://storage.googleapis.com/models-hao/mb2-ssd-lite-mp-0_686.pth
+
 ```
 Average Precision Per-class:
 aeroplane: 0.6973327307871002
@@ -108,14 +110,49 @@ tvmonitor: 0.6555051795079904
 Average Precision Across All Classes:0.6860690100560214
 ```
 
-The parameters to re-produce the model:
+The code to re-produce the model:
 
 ```bash
 wget -P models https://storage.googleapis.com/models-hao/mb2-imagenet-71_8.pth
 python train_ssd.py --dataset_type voc  --datasets ~/data/VOC0712/VOC2007 ~/data/VOC0712/VOC2012 --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mb2-ssd-lite --base_net models/mb2-imagenet-71_8.pth  --scheduler cosine --lr 0.01 --t_max 200 --validation_epochs 5 --num_epochs 20
 ```
 
+### VGG SSD
 
+URL: https://storage.googleapis.com/models-hao/vgg16-ssd-mp-0_7726.pth
+
+
+```
+Average Precision Per-class:
+aeroplane: 0.7957406334737802
+bicycle: 0.8305351156180996
+bird: 0.7570969203281721
+boat: 0.7043869846367731
+bottle: 0.5151666571756393
+bus: 0.8375121237865507
+car: 0.8581508869699901
+cat: 0.8696185705648963
+chair: 0.6165431194526735
+cow: 0.8066422244852381
+diningtable: 0.7629391213959706
+dog: 0.8444541531856452
+horse: 0.8691922094815812
+motorbike: 0.8496564646906418
+person: 0.793785185549561
+pottedplant: 0.5233462463152305
+sheep: 0.7786762429478917
+sofa: 0.8024887701948746
+train: 0.8713861172265407
+tvmonitor: 0.7650514925384194
+Average Precision Across All Classes:0.7726184620009084
+```
+
+The code to re-produce the model:
+
+```bash
+wget -P models https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
+python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ --validation_dataset ~/data/VOC0712/test/VOC2007/ --net vgg16-ssd --base_net models/vgg16_reducedfc.pth  --batch_size 24 --num_epochs 200 —scheduler "multi-step” —-milestones “120,160”
+```
 ## Training
 
 ```bash
