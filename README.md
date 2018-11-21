@@ -7,7 +7,7 @@ Currently, it has MobileNetV1, MobileNetV2, and VGG based SSD/SSD-Lite implement
 
 It also has out-of-box support for retraining on Google Open Images dataset.
 
-![Example of Mobile SSD](run_ssd_example_output.jpg "Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.")
+![Example of Mobile SSD](readme_ssd_example.jpg  "Example of Mobile SSD(Courtesy of https://www.pexels.com/@mirit-assaf-299757 for the image.")
 
 ## Dependencies
 1. Python 3.6+
