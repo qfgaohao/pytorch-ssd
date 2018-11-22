@@ -9,10 +9,31 @@ from collections import namedtuple
 GraphPath = namedtuple("GraphPath", ['s0', 'name', 's1'])  #
 
 
+def get_out_channels(m):
+    if isinstance(m, nn.Conv2d):
+        return m.out_channels
+    elif isinstance(m, nn.Sequential):
+        return get_out_channels(m[-1])
+    else:
+        raise ValueError("To use get_out_channels the module has to be Conv2d "
+                         "or Sequential of Conv2ds.")
+
+
+def get_in_channels(m):
+    print("get_in channels", type(m))
+    if isinstance(m, nn.Conv2d):
+        return m.in_channels
+    elif isinstance(m, nn.Sequential):
+        return get_in_channels(m[-1])
+    else:
+        raise ValueError("To use get_out_channels the module has to be Conv2d "
+                         "or Sequential of Conv2ds.")
+
+
 class SSD(nn.Module):
     def __init__(self, num_classes: int, base_net: nn.ModuleList, source_layer_indexes: List[int],
                  extras: nn.ModuleList, classification_headers: nn.ModuleList,
-                 regression_headers: nn.ModuleList, is_test=False, config=None, device=None):
+                 regression_headers: nn.ModuleList, use_fpn=True, is_test=False, config=None, device=None):
         """Compose a SSD model using the given components.
         """
         super(SSD, self).__init__()
@@ -25,10 +46,21 @@ class SSD(nn.Module):
         self.regression_headers = regression_headers
         self.is_test = is_test
         self.config = config
+        self.use_fpn = use_fpn
 
         # register layers in source_layer_indexes by adding them to a module list
         self.source_layer_add_ons = nn.ModuleList([t[1] for t in source_layer_indexes
                                                    if isinstance(t, tuple) and not isinstance(t, GraphPath)])
+        if use_fpn:
+            fpn = []
+            for i in range(len(classification_headers) - 2, -1, -1):
+                in_channels = get_in_channels(classification_headers[i + 1])
+                out_channels = get_in_channels(classification_headers[i])
+                upsample_module = nn.Conv2d(in_channels, out_channels, 3, 1, 1)
+
+                fpn.insert(0, upsample_module)
+            self.fpn = nn.ModuleList(fpn)
+
         if device:
             self.device = device
         else:
@@ -40,8 +72,30 @@ class SSD(nn.Module):
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         confidences = []
         locations = []
+        features = self.compute_features(x)
+        if self.use_fpn:
+            features = self.compute_fpn_features(features)
+        for i, feature in enumerate(features):
+            confidence, location = self.compute_header(i, feature)
+            confidences.append(confidence)
+            locations.append(location)
+
+        confidences = torch.cat(confidences, 1)
+        locations = torch.cat(locations, 1)
+        
+        if self.is_test:
+            confidences = F.softmax(confidences, dim=2)
+            boxes = box_utils.convert_locations_to_boxes(
+                locations, self.priors, self.config.center_variance, self.config.size_variance
+            )
+            boxes = box_utils.center_form_to_corner_form(boxes)
+            return confidences, boxes
+        else:
+            return confidences, locations
+
+    def compute_features(self, x):
         start_layer_index = 0
-        header_index = 0
+        features = []
         for end_layer_index in self.source_layer_indexes:
             if isinstance(end_layer_index, GraphPath):
                 path = end_layer_index
@@ -69,33 +123,25 @@ class SSD(nn.Module):
                     x = layer(x)
                 end_layer_index += 1
             start_layer_index = end_layer_index
-            confidence, location = self.compute_header(header_index, y)
-            header_index += 1
-            confidences.append(confidence)
-            locations.append(location)
+            features.append(y)
 
         for layer in self.base_net[end_layer_index:]:
             x = layer(x)
 
         for layer in self.extras:
             x = layer(x)
-            confidence, location = self.compute_header(header_index, x)
-            header_index += 1
-            confidences.append(confidence)
-            locations.append(location)
+            features.append(x)
+        return features
 
-        confidences = torch.cat(confidences, 1)
-        locations = torch.cat(locations, 1)
-        
-        if self.is_test:
-            confidences = F.softmax(confidences, dim=2)
-            boxes = box_utils.convert_locations_to_boxes(
-                locations, self.priors, self.config.center_variance, self.config.size_variance
-            )
-            boxes = box_utils.center_form_to_corner_form(boxes)
-            return confidences, boxes
-        else:
-            return confidences, locations
+    def compute_fpn_features(self, features):
+        fpn_features = [features[-1]]
+        for i in range(len(features) - 2, -1, -1):
+            feature = features[i]
+            high_level_feature = F.upsample(fpn_features[0], size=feature.size()[2:], mode="bilinear")
+            high_level_feature = self.fpn[i](high_level_feature)
+            feature = feature + high_level_feature
+            fpn_features.insert(0, feature)
+        return fpn_features
 
     def compute_header(self, i, x):
         confidence = self.classification_headers[i](x)
@@ -114,6 +160,8 @@ class SSD(nn.Module):
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
+        if self.use_fpn:
+            self.fpn.apply(_xavier_init_)
 
     def init_from_pretrained_ssd(self, model):
         state_dict = torch.load(model, map_location=lambda storage, loc: storage)
@@ -130,6 +178,8 @@ class SSD(nn.Module):
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
+        if self.use_fpn:
+            self.fpn.apply(_xavier_init_)
 
     def load(self, model):
         self.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
