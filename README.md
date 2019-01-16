@@ -12,7 +12,7 @@ It also has out-of-box support for retraining on Google Open Images dataset.
 ## Dependencies
 1. Python 3.6+
 2. OpenCV
-3. Pytorch 0.4+
+3. Pytorch 1.0 or Pytorch 0.4+
 4. Caffe2
 5. Pandas
 6. Boto3 if you want to train models on the Google OpenImages Dataset.
