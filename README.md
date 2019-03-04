@@ -255,6 +255,8 @@ python run_ssd_example.py mb1-ssd models/mobilenet-v1-ssd-Epoch-99-Loss-2.218461
 
 ## ONNX Friendly VGG16 SSD
 
+! The model is not really ONNX-Friendly due the issue mentioned here "https://github.com/qfgaohao/pytorch-ssd/issues/33#issuecomment-467533485"
+
 The Scaled L2 Norm Layer has been replaced with BatchNorm to make the net ONNX compatible.
 
 ### Train
