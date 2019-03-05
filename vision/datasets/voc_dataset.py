@@ -2,11 +2,12 @@ import numpy as np
 import pathlib
 import xml.etree.ElementTree as ET
 import cv2
+import os
 
 
 class VOCDataset:
 
-    def __init__(self, root, transform=None, target_transform=None, is_test=False, keep_difficult=False):
+    def __init__(self, root, transform=None, target_transform=None, is_test=False, keep_difficult=False, label_file=None):
         """Dataset for VOC data.
         Args:
             root: the root of the VOC2007 or VOC2012 dataset, the directory contains the following sub-directories:
@@ -22,13 +23,29 @@ class VOCDataset:
         self.ids = VOCDataset._read_image_ids(image_sets_file)
         self.keep_difficult = keep_difficult
 
-        self.class_names = ('BACKGROUND',
+        # if the labels file exists, read in the class names
+        label_file_name = self.root / "ImageSets/Main/labels.txt"
+
+        if os.path.isfile(label_file_name):
+            class_string = ""
+            with open(label_file_name, 'r') as infile:
+                for line in infile:
+                    class_string += line.rstrip()
+
+            # prepend BACKGROUND as first class
+            classes = class_string.split(',')
+            classes  = [ elem.replace(" ", "") for elem in classes]
+            self.class_names = tuple(classes)
+
+        else:
+            self.class_names = ('BACKGROUND',
             'aeroplane', 'bicycle', 'bird', 'boat',
             'bottle', 'bus', 'car', 'cat', 'chair',
             'cow', 'diningtable', 'dog', 'horse',
             'motorbike', 'person', 'pottedplant',
-            'sheep', 'sofa', 'train', 'tvmonitor'
-        )
+            'sheep', 'sofa', 'train', 'tvmonitor')
+
+
         self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
 
     def __getitem__(self, index):
