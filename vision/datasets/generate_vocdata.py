@@ -114,9 +114,6 @@ def main(filename):
                 else:
                     outfile.write(name + " -1\n")
 
-
-
-
 def create_folder(foldername):
     if os.path.exists(foldername):
         print('folder already exists:', foldername)
