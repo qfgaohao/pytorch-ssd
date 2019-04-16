@@ -9,7 +9,7 @@ import sys
 
 
 if len(sys.argv) < 5:
-    print('Usage: python run_ssd_example.py <net type>  <model path> <image path>')
+    print('Usage: python run_ssd_example.py <net type>  <model path> <label path> <image path>')
     sys.exit(0)
 net_type = sys.argv[1]
 model_path = sys.argv[2]
