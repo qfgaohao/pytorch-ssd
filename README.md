@@ -167,7 +167,7 @@ The dataset path is the parent directory of the folders: Annotations, ImageSets,
 ## Evaluation
 
 ```bash
-python eval_ssd.py --net mb1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model mobilenet-v1-ssd models/mobilenet-v1-ssd-mp-0_675.pth --label_file models/voc-model-labels.txt 
+python eval_ssd.py --net mb1-ssd  --dataset ~/data/VOC0712/test/VOC2007/ --trained_model models/mobilenet-v1-ssd-mp-0_675.pth --label_file models/voc-model-labels.txt 
 ```
 
 ## Convert models to ONNX and Caffe2 models
