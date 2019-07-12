@@ -2,6 +2,7 @@ from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
+from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite
 
 import sys
 import torch.onnx
@@ -26,6 +27,8 @@ elif net_type == 'mb1-ssd':
     net = create_mobilenetv1_ssd(len(class_names), is_test=True)
 elif net_type == 'mb1-ssd-lite':
     net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
+elif net_type == 'mb2-ssd-lite':
+    net = create_mobilenetv2_ssd_lite(len(class_names), is_test=True)
 elif net_type == 'sq-ssd-lite':
     net = create_squeezenet_ssd_lite(len(class_names), is_test=True)
 else:
