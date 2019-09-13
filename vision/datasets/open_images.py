@@ -2,7 +2,7 @@ import numpy as np
 import pathlib
 import cv2
 import pandas as pd
-
+import copy
 
 class OpenImagesDataset:
 
@@ -26,12 +26,14 @@ class OpenImagesDataset:
     def _getitem(self, index):
         image_info = self.data[index]
         image = self._read_image(image_info['image_id'])
-        boxes = image_info['boxes']
+        # duplicate boxes to prevent corruption of dataset
+        boxes = copy.copy(image_info['boxes'])
         boxes[:, 0] *= image.shape[1]
         boxes[:, 1] *= image.shape[0]
         boxes[:, 2] *= image.shape[1]
         boxes[:, 3] *= image.shape[0]
-        labels = image_info['labels']
+        # duplicate labels to prevent corruption of dataset
+        labels = copy.copy(image_info['labels'])
         if self.transform:
             image, boxes, labels = self.transform(image, boxes, labels)
         if self.target_transform:
@@ -63,7 +65,8 @@ class OpenImagesDataset:
         data = []
         for image_id, group in annotations.groupby("ImageID"):
             boxes = group.loc[:, ["XMin", "YMin", "XMax", "YMax"]].values.astype(np.float32)
-            labels = np.array([class_dict[name] for name in group["ClassName"]])
+            # make labels 64 bits to satisfy the cross_entropy function
+            labels = np.array([class_dict[name] for name in group["ClassName"]], dtype='int64')
             data.append({
                 'image_id': image_id,
                 'boxes': boxes,
