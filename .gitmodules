@@ -1,0 +1,3 @@
+[submodule "modules/OpenLabeling"]
+	path = modules/OpenLabeling
+	url = https://github.com/TheCamilovisk/OpenLabeling.git
