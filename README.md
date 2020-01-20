@@ -29,27 +29,6 @@ pip install torch torchvision
 pip install torch==1.3.1+cpu torchvision==0.4.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 ```
 
-Alternatively, you can install everything at once by simply running:
-```
-pip install -r requirements.txt
-# Optionally, the development packages can be installed
-pip install -r requirements-dev.txt
-```
-
-## pipenv
-To instal those packages using [pipenv](https://github.com/pypa/pipenv), first install pipenv on your system:
-```
-pip install pipenv
-```
-and from the root directory, run:
-```
-pipenv install
-```
-To install with development packages:
-```
-pipenv install --dev
-```
-
 ## Install submodules
 After installing the dependencies, from the root directory run:
 ```
