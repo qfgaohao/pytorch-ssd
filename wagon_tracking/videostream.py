@@ -8,7 +8,7 @@ from wagon_tracking.utils import get_realpath, warning
 
 
 class VideoStreamBase:
-    def __init__(self, queue_sz=128, transforms=[]):
+    def __init__(self, queue_sz, transforms=[]):
         self.stream = None
         self.stopped = False
         self.queue = Queue(maxsize=queue_sz)
@@ -52,20 +52,17 @@ class VideoFileStream(VideoStreamBase):
             if self.stopped:
                 return
 
-            if not self.queue.full():
-                grabbed, frame = self.stream.read()
+            grabbed, frame = self.stream.read()
 
-                if not grabbed:
-                    self.stop()
-                    return
+            if not grabbed:
+                self.stop()
+                return
 
-                self.queue.put(frame)
-            else:
-                sleep(0.3)
+            self.queue.put(frame, block=True)
 
     def read(self):
         self.video_frames_count += 1
-        frame = self.queue.get()
+        frame = self.queue.get(block=True)
         for transform in self.transforms:
             frame = transform(frame)
         return frame
@@ -83,7 +80,7 @@ class VideoFileStream(VideoStreamBase):
 
 
 class VideoLiveStream(VideoStreamBase):
-    def __init__(self, queue_sz=128, transforms=[]):
+    def __init__(self, queue_sz=3, transforms=[]):
         super().__init__(queue_sz=queue_sz, transforms=transforms)
         self.stream = cv.VideoCapture(0)
         self.wait_time = 1 / self.stream.get(cv.CAP_PROP_FPS) / 2
@@ -93,15 +90,13 @@ class VideoLiveStream(VideoStreamBase):
             if self.stopped:
                 return
 
-            if not self.queue.full():
-                grabbed, frame = self.stream.read()
+            grabbed, frame = self.stream.read()
 
-                if not grabbed:
-                    self.stop()
-                    return
+            if not grabbed:
+                self.stop()
+                return
 
-                self.queue.put(frame)
-                sleep(self.wait_time)
+            self.queue.put(frame, block=True)
 
     def read(self):
         self.video_frames_count += 1
