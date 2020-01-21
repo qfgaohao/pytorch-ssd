@@ -1,5 +1,4 @@
 import sys
-from time import sleep
 
 import cv2
 
@@ -22,6 +21,7 @@ from vision.ssd.squeezenet_ssd_lite import (
 from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
 from vision.utils.misc import Timer
 from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
+from wagon_tracking.transforms import DistortionRectifier
 
 if len(sys.argv) < 4:
     print(
@@ -32,13 +32,17 @@ net_type = sys.argv[1]
 model_path = sys.argv[2]
 label_path = sys.argv[3]
 
+transform = [
+    DistortionRectifier(
+        '/home/camilo/workspace/cv/pytorch-ssd/resources/camera_parameters.pkl.gz'
+    )
+]
 if len(sys.argv) >= 5:
-    cap = VideoFileStream(sys.argv[4])  # capture from file
+    cap = VideoFileStream(sys.argv[4], queue_sz=64, transforms=transform)  # capture from file
     frame_time = 1
 else:
-    cap = VideoLiveStream()  # capture from camera
+    cap = VideoLiveStream(transforms=transform)  # capture from camera
     frame_time = int(1 / cap.get(cv2.CAP_PROP_FPS) * 1000)
-sleep(1.0)
 cap.start()
 
 class_names = ['BACKGROUND'] + [name.strip() for name in open(label_path).readlines()]
