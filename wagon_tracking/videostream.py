@@ -71,8 +71,11 @@ class VideoFileStream(VideoStreamBase):
         if self.queue.qsize() > 0:
             return True
 
-        elif self.video_frames_count < self.total_video_frames:
-            sleep(1.0)
+        elif self.total_video_frames <= 0 or (
+            self.total_video_frames > 0
+            and self.video_frames_count < self.total_video_frames
+        ):
+            sleep(3.0)
             return self.queue.qsize() > 0
 
         else:
