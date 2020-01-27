@@ -83,9 +83,9 @@ class VideoFileStream(VideoStreamBase):
 
 
 class VideoLiveStream(VideoStreamBase):
-    def __init__(self, queue_sz=3, transforms=[]):
-        super().__init__(queue_sz=queue_sz, transforms=transforms)
-        self.stream = cv.VideoCapture(0)
+    def __init__(self, device_loc, transforms=[]):
+        super().__init__(queue_sz=3, transforms=transforms)
+        self.stream = cv.VideoCapture(device_loc)
         self.wait_time = 1 / self.stream.get(cv.CAP_PROP_FPS) / 2
 
     def update(self):
@@ -99,7 +99,10 @@ class VideoLiveStream(VideoStreamBase):
                 self.stop()
                 return
 
-            self.queue.put(frame, block=True)
+            if not self.queue.full():
+                self.queue.put(frame)
+            else:
+                sleep(self.wait_time)
 
     def read(self):
         self.video_frames_count += 1
@@ -109,5 +112,4 @@ class VideoLiveStream(VideoStreamBase):
         return frame
 
     def more(self):
-        if self.queue.qsize() > 0:
-            return True
+        return True
