@@ -1,33 +1,35 @@
+import os
 import sys
 
 import cv2
 
 from vision.utils.misc import Timer
 from wagon_tracking.detection import WagonDetector
-from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
 from wagon_tracking.transforms import DistortionRectifier
+from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
+from wagon_tracking.utils import get_realpath
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 5:
     print(
-        'Usage: python run_ssd_example.py <net type>  <model path> <label path> [video file]'
+        'Usage: python run_ssd_example.py <net type>  <model path> <label path> <video file | device location> [camera_param_file]'
     )
     sys.exit(0)
 net_type = sys.argv[1]
 model_path = sys.argv[2]
 label_path = sys.argv[3]
+video_path = sys.argv[4]
+camera_parameters = get_realpath('resources/camera_parameters.pkl.gz')
+if len(sys.argv) > 5:
+    camera_parameters = get_realpath(sys.argv[5])
 
-transform = [
-    DistortionRectifier(
-        '/home/camilo/workspace/cv/pytorch-ssd/resources/camera_parameters.pkl.gz'
-    )
-]
-if len(sys.argv) >= 5:
+transform = [DistortionRectifier(camera_parameters)]
+if os.path.exists(video_path):
     cap = VideoFileStream(
-        sys.argv[4], queue_sz=64, transforms=transform
+        video_path, queue_sz=64, transforms=transform
     )  # capture from file
     frame_time = 1
 else:
-    cap = VideoLiveStream(transforms=transform)  # capture from camera
+    cap = VideoLiveStream(video_path, transforms=transform)  # capture from camera
     frame_time = int(1 / cap.get(cv2.CAP_PROP_FPS) * 1000)
 cap.start()
 
