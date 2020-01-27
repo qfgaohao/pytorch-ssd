@@ -15,7 +15,7 @@ class DistortionRectifier:
         self.d = params['D']
         self.k_optimal = None
         self.k_optimal, _ = cv.getOptimalNewCameraMatrix(
-            self.k, self.d, self.img_shape, 1.0, self.img_shape, True
+            self.k, self.d, self.img_shape, 0.7, self.img_shape, True
         )
         self.map1 = None
         self.map2 = None
