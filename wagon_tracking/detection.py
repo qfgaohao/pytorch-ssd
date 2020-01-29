@@ -20,7 +20,7 @@ from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
 
 
 class WagonDetector:
-    def __init__(self, net_type, label_path, model_path):
+    def __init__(self, net_type, label_path, model_path, top_k=10, prob_threshold=0.4):
         self.class_names = ['BACKGROUND'] + [
             name.strip() for name in open(label_path).readlines()
         ]
@@ -64,6 +64,9 @@ class WagonDetector:
                 "The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite."
             )
 
-    def run(self, image, top_k, prob_threshold):
+        self.top_k = top_k
+        self.prob_threshold = prob_threshold
+
+    def __call__(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        return self.predictor.predict(image, top_k, prob_threshold)
+        return self.predictor.predict(image, self.top_k, self.prob_threshold)

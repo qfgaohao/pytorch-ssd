@@ -43,7 +43,7 @@ while cap.more():
     if orig_image is None:
         continue
     timer.start()
-    boxes, labels, probs = detector.run(orig_image, 10, 0.4)
+    boxes, labels, probs = detector(orig_image)
     interval = timer.end()
     print('Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.size(0)))
     for i in range(boxes.size(0)):
