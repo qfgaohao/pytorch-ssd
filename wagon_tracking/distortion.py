@@ -8,15 +8,18 @@ from wagon_tracking.utils import get_realpath
 
 
 class DistortionRectifier:
-    def __init__(self, params_file):
+    def __init__(self, params_file, keep_portions=True):
         params = pickle.load(gzip.open(get_realpath(params_file)))
         self.img_shape = params['image shape']
         self.k = params['K']
         self.d = params['D']
         self.k_optimal = None
-        self.k_optimal, _ = cv.getOptimalNewCameraMatrix(
-            self.k, self.d, self.img_shape, 0.7, self.img_shape, True
-        )
+        if keep_portions:
+            self.k_optimal, _ = cv.getOptimalNewCameraMatrix(
+                self.k, self.d, self.img_shape, 0.7, self.img_shape, True
+            )
+        else:
+            self.k_optimal = self.k
         self.map1 = None
         self.map2 = None
         self.imap1 = None
