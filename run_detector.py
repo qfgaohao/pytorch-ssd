@@ -27,10 +27,9 @@ if os.path.exists(video_path):
     cap = VideoFileStream(
         video_path, queue_sz=64, transforms=transform
     )  # capture from file
-    frame_time = 1
 else:
     cap = VideoLiveStream(video_path, transforms=transform)  # capture from camera
-    frame_time = int(1 / cap.get(cv2.CAP_PROP_FPS) * 1000)
+frame_time = int(1 / cap.get(cv2.CAP_PROP_FPS) * 1000)
 cap.start()
 
 detector = WagonDetector(net_type, label_path, model_path)
