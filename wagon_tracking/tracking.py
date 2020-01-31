@@ -14,7 +14,6 @@ class WagonTracker:
         self.detector = detector
         self.drains_info = None
         self.timer = Timer()
-        # self.tracked_wagons = []
         self.next_id = 0
         self.movement_vector = np.array([0.0, 0.0])
 
@@ -33,9 +32,21 @@ class WagonTracker:
             self._init_tracking_dict(boxes, labels)
             return
 
-        updated_drains_info = self._match_boxes(boxes, labels)
+        updated_drains_info, new_drains_info = self._match_boxes(boxes, labels)
 
-        updated_drains_info = self._update_notfound_objs(updated_drains_info)
+        notfound_drains_info = self._update_notfound_objs(updated_drains_info)
+
+        updated_drains_info.extend(notfound_drains_info)
+
+        n_new_boxes = len(new_drains_info)
+        if n_new_boxes > 0:
+            updated_drains_info.extend(
+                (
+                    (self.next_id + id, box, lbl)
+                    for id, (box, lbl) in enumerate(new_drains_info)
+                )
+            )
+            self.next_id += n_new_boxes
 
         self.drains_info = updated_drains_info
 
@@ -62,7 +73,7 @@ class WagonTracker:
                 t_center = (t_box[2:] + t_box[:2]) / 2
                 movement_vector += u_center - t_center
 
-                updated_drains_info.append([t_id, u_box, labels[n_box_idx]])
+                updated_drains_info.append([t_id, boxes[n_box_idx], labels[n_box_idx]])
 
                 boxes = np.delete(boxes, (n_box_idx), axis=0)
                 labels = np.delete(labels, (n_box_idx), axis=0)
@@ -70,28 +81,27 @@ class WagonTracker:
         if len(updated_drains_info) > 0:
             self.movement_vector = movement_vector / len(updated_drains_info)
         else:
-            # It's a hack. At the left end of the frame the object bounding boxes are
+            # This is a hack. At the left end of the frame the object bounding boxes are
             # prone to slightly move their center up. We don't want this o happen.
             self.movement_vector[1] = 0.0
 
         if len(boxes) > 0:
-            new_ids = list(range(self.next_id, self.next_id + 1 + len(boxes)))
-            updated_drains_info.extend(list(zip(new_ids, boxes, labels)))
-            self.next_id = new_ids[-1]
+            new_drains_info = list(zip(boxes, labels))
+        else:
+            new_drains_info = []
 
-        return updated_drains_info
+        return updated_drains_info, new_drains_info
 
     def _update_notfound_objs(self, updated_drains_info: list):
         u_ids = [id for id, _, _ in updated_drains_info]
 
-        not_found_info = []
+        notfound_drains_info = []
         for t_id, t_box, t_lbl in self.drains_info:
             if np.linalg.norm(self.movement_vector) > 5:
                 t_box[2:] += self.movement_vector
                 t_box[:2] += self.movement_vector
 
             if t_id not in u_ids:
-                not_found_info.append([t_id, t_box, t_lbl])
+                notfound_drains_info.append([t_id, t_box, t_lbl])
 
-        updated_drains_info.extend(not_found_info)
-        return updated_drains_info
+        return notfound_drains_info
