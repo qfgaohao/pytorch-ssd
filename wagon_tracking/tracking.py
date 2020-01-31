@@ -1,21 +1,22 @@
-import vision.utils.box_utils_numpy as box_utils
-import numpy as np
-
-# from collections import namedtuple
-from vision.utils.misc import Timer
 from copy import deepcopy
 
+import numpy as np
+from sortedcontainers import SortedDict
 
-# WagonInfo = namedtuple('WagonInfo', 'idx', 'front', 'back')
+import vision.utils.box_utils_numpy as box_utils
+from vision.utils.misc import Timer
 
 
 class WagonTracker:
-    def __init__(self, detector):
+    def __init__(self, detector, detection_threshold):
         self.detector = detector
-        self.drains_info = {}
+        self.drains_info = SortedDict()
+        self.wagons_info = SortedDict()
         self.timer = Timer()
         self.next_drain_id = 0
+        self.next_wagon_id = 0
         self.movement_vector = np.array([0.0, 0.0])
+        self.detection_threshold = detection_threshold
 
     def __call__(self, image):
         self.timer.start()
@@ -25,6 +26,7 @@ class WagonTracker:
         print('Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.size(0)))
 
         self._update_tracking(boxes.numpy(), labels.numpy())
+        print(self.wagons_info)
         return deepcopy(self.drains_info)
 
     def _update_tracking(self, boxes, labels):
@@ -33,6 +35,7 @@ class WagonTracker:
             self.drains_info = {
                 id: (box, lbl) for id, (box, lbl) in enumerate(zip(boxes, labels))
             }
+            self._update_wagons(self.drains_info)
             return
 
         updated_drains_info, new_drains_info = self._update_drains(boxes, labels)
@@ -43,13 +46,13 @@ class WagonTracker:
 
         n_new_boxes = len(new_drains_info)
         if n_new_boxes > 0:
-            updated_drains_info.update(
-                {
-                    self.next_drain_id + id: (box, lbl)
-                    for id, (box, lbl) in enumerate(new_drains_info)
-                }
-            )
+            new_drains_info = {
+                self.next_drain_id + id: (box, lbl)
+                for id, (box, lbl) in enumerate(new_drains_info)
+            }
+            updated_drains_info.update(new_drains_info)
             self.next_drain_id += n_new_boxes
+            self._update_wagons(new_drains_info)
 
         self.drains_info = updated_drains_info
 
@@ -103,3 +106,28 @@ class WagonTracker:
                 notfound_drains_info[t_id] = (t_box, t_lbl)
 
         return notfound_drains_info
+
+    def _update_wagons(self, new_drains_info):
+        for id, (box, _) in new_drains_info.items():
+            center = (box[2:] + box[:2]) / 2
+
+            if center[0] <= self.detection_threshold:
+                w_info = self.wagons_info.get(self.next_wagon_id - 1, (-1, -1))
+                w_info = (w_info[0], id)
+
+                if self.next_wagon_id == 0:
+                    # If the drain of the frist wagon was detected on the left side of the
+                    # screen, them that wagon is already getting out of the screen, and we
+                    # cannot detect the front drain of the second wagon. So the next left
+                    # drain that will be detected pertains to the third wagon.
+                    self.wagons_info[self.next_wagon_id] = w_info
+                    self.next_wagon_id += 2
+                else:
+                    # If the drain of the first wagon was detected on the left side of the
+                    # screen, them the first wagon is still coming, and everything can
+                    # happen as expected.
+                    self.wagons_info[self.next_wagon_id - 1] = w_info
+                    self.next_wagon_id += 1
+
+            else:
+                self.wagons_info[self.next_wagon_id] = (id, -1)

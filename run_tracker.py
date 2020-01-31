@@ -40,7 +40,7 @@ frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 
 detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.5)
-tracker = WagonTracker(detector)
+tracker = WagonTracker(detector, frame_width // 2)
 
 cv2.namedWindow('annotated', cv2.WINDOW_NORMAL)
 
