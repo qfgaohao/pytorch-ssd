@@ -61,8 +61,8 @@ while cap.more():
         4,
     )
 
-    if tracking_info is not None:
-        for id, box, label in tracking_info:
+    if len(tracking_info) != 0:
+        for id, (box, label) in tracking_info.items():
             label = f"{detector.class_names[label]}: {id}"
             cv2.rectangle(
                 orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4
