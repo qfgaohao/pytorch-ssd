@@ -29,7 +29,10 @@ class WagonTracker:
 
     def _update_tracking(self, boxes, labels):
         if self.drains_info is None and len(boxes) > 0:
-            self._init_tracking_dict(boxes, labels)
+            self.next_id = len(boxes)
+            self.drains_info = [
+                (id, box, lbl) for id, (box, lbl) in enumerate(zip(boxes, labels))
+            ]
             return
 
         updated_drains_info, new_drains_info = self._match_boxes(boxes, labels)
@@ -49,11 +52,6 @@ class WagonTracker:
             self.next_id += n_new_boxes
 
         self.drains_info = updated_drains_info
-
-    def _init_tracking_dict(self, boxes, labels):
-        self.next_id = len(boxes)
-        ids = list(range(self.next_id))
-        self.drains_info = list(zip(ids, boxes, labels))
 
     def _match_boxes(self, boxes, labels):
         updated_drains_info = []
