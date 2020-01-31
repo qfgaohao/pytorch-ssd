@@ -17,6 +17,7 @@ from vision.ssd.squeezenet_ssd_lite import (
     create_squeezenet_ssd_lite_predictor,
 )
 from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
+from vision.utils.misc import Timer
 
 
 class WagonDetector:
@@ -32,6 +33,8 @@ class WagonDetector:
 
         self.top_k = top_k
         self.prob_threshold = prob_threshold
+
+        self.timer = Timer()
 
     def _create_network(self, net_type):
         if net_type == 'vgg16-ssd':
@@ -67,4 +70,12 @@ class WagonDetector:
 
     def __call__(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        return self.predictor.predict(image, self.top_k, self.prob_threshold)
+
+        self.timer.start()
+        boxes, labels, probs = self.predictor.predict(
+            image, self.top_k, self.prob_threshold
+        )
+        interval = self.timer.end()
+        print('Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.size(0)))
+
+        return boxes, labels, probs

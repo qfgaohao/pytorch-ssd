@@ -4,7 +4,6 @@ import numpy as np
 from sortedcontainers import SortedDict
 
 import vision.utils.box_utils_numpy as box_utils
-from vision.utils.misc import Timer
 
 
 class WagonTracker:
@@ -12,18 +11,13 @@ class WagonTracker:
         self.detector = detector
         self.drains_info = SortedDict()
         self.wagons_info = SortedDict()
-        self.timer = Timer()
         self.next_drain_id = 0
         self.next_wagon_id = 0
         self.movement_vector = np.array([0.0, 0.0])
         self.detection_threshold = detection_threshold
 
     def __call__(self, image):
-        self.timer.start()
         boxes, labels, probs = self.detector(image)
-        interval = self.timer.end()
-
-        print('Time: {:.2f}s, Detect Objects: {:d}.'.format(interval, labels.size(0)))
 
         self._update_tracking(boxes.numpy(), labels.numpy())
         print(self.wagons_info)
