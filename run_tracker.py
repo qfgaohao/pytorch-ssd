@@ -11,7 +11,8 @@ from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
 
 if len(sys.argv) < 5:
     print(
-        'Usage: python run_ssd_example.py <net type>  <model path> <label path> <video file | device location> [camera_param_file]'
+        'Usage: python run_ssd_example.py <net type>  <model path> <label path>'
+        '<video file | device location> [camera_param_file]'
     )
     sys.exit(0)
 net_type = sys.argv[1]
@@ -38,7 +39,7 @@ frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 '''---------------------------------------------------------------'''
 
 
-detector = WagonDetector(net_type, label_path, model_path)
+detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.5)
 tracker = WagonTracker(detector)
 
 cv2.namedWindow('annotated', cv2.WINDOW_NORMAL)
@@ -61,19 +62,24 @@ while cap.more():
     )
 
     if tracking_info is not None:
-        for box, label, prob in tracking_info:
-            label = f"{detector.class_names[label]}: {prob:.2f}"
-            cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
+        for id, box, label in tracking_info:
+            label = f"{detector.class_names[label]}: {id}"
+            cv2.rectangle(
+                orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4
+            )
+
+            center = (box[2:] + box[:2]) // 2
 
             cv2.putText(
                 orig_image,
                 label,
-                (box[0] + 20, box[1] + 40),
+                (int(box[0]), int(box[1] - 20)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1,  # font scale
                 (255, 0, 255),
                 2,
             )  # line type
+            cv2.circle(orig_image, (int(center[0]), int(center[1])), 3, (0, 0, 255), 3)
 
     cv2.imshow('annotated', orig_image)
     if cv2.waitKey(frame_time) & 0xFF == ord('q'):
