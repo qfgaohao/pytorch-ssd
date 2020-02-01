@@ -76,7 +76,13 @@ if __name__ == '__main__':
     video_fourcc = int(video_stream.get(cv.CAP_PROP_FOURCC))
     frame_width = int(video_stream.get(cv.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video_stream.get(cv.CAP_PROP_FRAME_HEIGHT))
-    new_frame_sz = (int(frame_width // 2), int(frame_height // 2))
+    if args.frames_downscale_factor and args.frames_downscale_factor > 1:
+        new_frame_sz = (
+            int(frame_width // args.frames_downscale_factor),
+            int(frame_height // args.frames_downscale_factor),
+        )
+    else:
+        new_frame_sz = (int(frame_width), int(frame_height))
 
     video_stream.start()
     sleep(1.0)
