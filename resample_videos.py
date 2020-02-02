@@ -59,14 +59,14 @@ if __name__ == '__main__':
 
     # Load the transforms
     transforms = []
+    if args.frames_downscale_factor and args.frames_downscale_factor > 1:
+        transforms.append(ImageDownscaleTransform(args.frames_downscale_factor))
     if args.fix_distortion:
         if args.distortion_param_file:
             params_file = args.distortion_param_file
         else:
             params_file = './resources/new_parameters.pkl.gz'
         transforms.append(DistortionRectifier(params_file))
-    if args.frames_downscale_factor and args.frames_downscale_factor > 1:
-        transforms.append(ImageDownscaleTransform(args.frames_downscale_factor))
 
     # Initialize the input video streaming.
     video_stream = VideoFileStream(
@@ -111,6 +111,8 @@ if __name__ == '__main__':
     frames_processed = 0
     while video_stream.more():
         frame = video_stream.read()
+        print(frame.shape)
+        print(new_frame_sz)
 
         video_writer.write(frame)
 
