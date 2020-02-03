@@ -111,8 +111,6 @@ if __name__ == '__main__':
     frames_processed = 0
     while video_stream.more():
         frame = video_stream.read()
-        print(frame.shape)
-        print(new_frame_sz)
 
         video_writer.write(frame)
 
