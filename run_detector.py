@@ -11,7 +11,8 @@ from wagon_tracking.utils import get_realpath
 
 if len(sys.argv) < 5:
     print(
-        'Usage: python run_ssd_example.py <net type>  <model path> <label path> <video file | device location> [camera_param_file]'
+        'Usage: python run_ssd_example.py <net type>  <model path> <label path>'
+        ' <video file | device location> [camera_param_file]'
     )
     sys.exit(0)
 net_type = sys.argv[1]
