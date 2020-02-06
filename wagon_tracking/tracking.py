@@ -95,9 +95,7 @@ class WagonTracker:
     def __init__(self, detector, detection_threshold):
         self.detector = detector
         self.elements_info = SortedDict()
-        self.wagons_info = SortedDict()
         self.next_element_id = 0
-        self.next_wagon_id = 0
         self.movement_vector = np.array([0.0, 0.0])
         self.detection_threshold = detection_threshold
 
@@ -105,46 +103,71 @@ class WagonTracker:
 
     def __call__(self, image):
         boxes, labels, _ = self.detector(image)
+        boxes, labels = boxes.numpy(), labels.numpy()
+
+        if len(boxes) != 0:
+            boxes, labels = self._sort_detections(boxes, labels)
 
         self._estimate_motion(image)
 
-        self._update_tracking(boxes.numpy(), labels.numpy())
-        # print(self.wagons_info)
+        self._update_tracking(boxes, labels)
+
         return deepcopy(self.elements_info)
 
+    def _sort_detections(self, boxes, labels):
+        sorted_idxs = np.argsort(boxes[:, 0], axis=0)
+        return boxes[sorted_idxs, :], labels[sorted_idxs]
+
     def _estimate_motion(self, image):
-        self.movement_vector = self.motion_estimator(image) * 1.7
+        self.movement_vector = self.motion_estimator(image) * 1.8
         self.movement_vector[1] = 0.0
+        self.movement_vector[0] = np.clip(self.movement_vector[0], -60.0, 60.0)
 
     def _update_tracking(self, boxes, labels):
         if len(self.elements_info) == 0 and len(boxes) > 0:
             self._init_elements_info(boxes, labels)
-            self._update_wagons(self.elements_info)
             return
 
-        updated_elements_info, new_elements_info = self._update_elements(boxes, labels)
+        updated_elements_info, remaining_elements_info = self._update_elements(
+            boxes, labels
+        )
 
         notfound_elements_info = self._update_notfound_elements(updated_elements_info)
-
         updated_elements_info.update(notfound_elements_info)
 
-        n_new_boxes = len(new_elements_info)
-        if n_new_boxes > 0:
-            new_elements_info = {
-                self.next_element_id + id: (box, lbl)
-                for id, (box, lbl) in enumerate(new_elements_info)
-            }
+        new_elements_info = self._get_new_elements_info(
+            remaining_elements_info, updated_elements_info
+        )
+
+        if len(new_elements_info) > 0:
             updated_elements_info.update(new_elements_info)
-            self.next_element_id += n_new_boxes
-            self._update_wagons(new_elements_info)
+
+        updated_elements_info = self._check_elements_tracking_info(
+            updated_elements_info
+        )
 
         self.elements_info = updated_elements_info
 
     def _init_elements_info(self, boxes, labels):
-        self.next_element_id = len(boxes)
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+
+        # Elements in the left side of the threshold line.
         self.elements_info = {
-            id: (box, lbl) for id, (box, lbl) in enumerate(zip(boxes, labels))
+            id: (box, lbl)
+            for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
+            if cen[0] < self.detection_threshold and id < 2
         }
+
+        # Elements in the right side of the threshold line.
+        self.next_element_id = len(self.elements_info)
+        self.elements_info.update(
+            {
+                id + self.next_element_id: (box, lbl)
+                for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
+                if cen[0] >= self.detection_threshold and id < 2
+            }
+        )
+        self.next_element_id = len(self.elements_info)
 
     def _update_elements(self, boxes, labels):
         updated_elements_info = {}
@@ -166,7 +189,7 @@ class WagonTracker:
             ious = box_utils.iou_of(t_box, search_boxes)
             n_box_idx = np.argmax(ious)
 
-            if ious[n_box_idx] > 0.0:
+            if ious[n_box_idx] > 0.1:
                 updated_elements_info[t_id] = (
                     search_boxes[n_box_idx],
                     search_labels[n_box_idx],
@@ -175,12 +198,7 @@ class WagonTracker:
                 boxes = np.delete(boxes, (search_idxs[n_box_idx]), axis=0)
                 labels = np.delete(labels, (search_idxs[n_box_idx]), axis=0)
 
-        if len(boxes) > 0:
-            new_elements_info = list(zip(boxes, labels))
-        else:
-            new_elements_info = []
-
-        return updated_elements_info, new_elements_info
+        return updated_elements_info, (boxes, labels)
 
     def _update_notfound_elements(self, updated_elements_info: list):
         u_ids = updated_elements_info.keys()
@@ -196,30 +214,69 @@ class WagonTracker:
 
         return notfound_elements_info
 
-    def _update_wagons(self, new_elements_info):
-        for id, (box, lbl) in new_elements_info.items():
+    def _get_nvisible_elements(self, updated_elements_info):
+        visible_left, visible_right = 0, 0
+
+        for id, (box, lbl) in updated_elements_info.items():
             if lbl != 1:
                 continue
 
-            center = (box[2:] + box[:2]) / 2
-
-            if center[0] <= self.detection_threshold:
-                w_info = self.wagons_info.get(self.next_wagon_id - 1, (-1, -1))
-                w_info = (w_info[0], id)
-
-                if self.next_wagon_id == 0:
-                    # If the drain of the frist wagon was detected on the left side of the
-                    # screen, them that wagon is already getting out of the screen, and we
-                    # cannot detect the front drain of the second wagon. So the next left
-                    # drain that will be detected pertains to the third wagon.
-                    self.wagons_info[self.next_wagon_id] = w_info
-                    self.next_wagon_id += 2
-                else:
-                    # If the drain of the first wagon was detected on the left side of the
-                    # screen, them the first wagon is still coming, and everything can
-                    # happen as expected.
-                    self.wagons_info[self.next_wagon_id - 1] = w_info
-                    self.next_wagon_id += 1
-
+            if ((box[:2] + box[2:]) / 2)[0] < self.detection_threshold:
+                visible_left += 1
             else:
-                self.wagons_info[self.next_wagon_id] = (id, -1)
+                visible_right += 1
+
+        return visible_left, visible_right
+
+    def _get_new_elements_info(self, remaining_elements_info, updated_elements_info):
+        (boxes, labels) = remaining_elements_info
+
+        if len(boxes) == 0:
+            return {}
+
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+
+        visible_left, visible_right = self._get_nvisible_elements(updated_elements_info)
+
+        new_elements_info = {}
+
+        if visible_left < 2:
+            # Elements in the left side of the threshold line.
+            left_elements_info = {
+                id + self.next_element_id: (box, lbl)
+                for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
+                if cen[0] < self.detection_threshold and visible_left + id < 2
+            }
+            self.next_element_id += len(left_elements_info)
+            new_elements_info.update(left_elements_info)
+
+        if visible_right < 2:
+            # Elements in the right side of the threshold line.
+            right_elements_info = {
+                id + self.next_element_id: (box, lbl)
+                for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
+                if cen[0] >= self.detection_threshold and visible_right + id < 2
+            }
+            self.next_element_id += len(right_elements_info)
+            new_elements_info.update(right_elements_info)
+
+        return new_elements_info
+
+    def _check_elements_tracking_info(self, elements_info):
+        elements_info = SortedDict(elements_info)
+        n_elements = len(elements_info)
+
+        keys = elements_info.keys()
+        for idx in range(n_elements):
+            if idx == n_elements - 1:
+                break
+
+            cur_key = keys[idx]
+            next_key = keys[idx + 1]
+
+            if elements_info[next_key][0][0] <= elements_info[cur_key][0][0]:
+                tmp = elements_info[cur_key]
+                elements_info[cur_key] = elements_info[next_key]
+                elements_info[next_key] = tmp
+
+        return elements_info
