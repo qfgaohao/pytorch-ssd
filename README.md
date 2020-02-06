@@ -55,3 +55,9 @@ python run_detector.py <net_type> <model_filepath> resources/labels.txt [video_f
 ```
 
 Run `python run_detector.py --h` for more information.
+
+Re-train the net.
+
+```
+python train_detector.py --datasets <train dataset> --validation_dataset <validation_dataset> --net <net_type> --pretrained_ssd <pretrained_model_file>  --batch_size 24 --num_epochs 200 --scheduler cosine --lr 0.01 --base_net_lr 0.001 --t_max 200
+```
