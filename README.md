@@ -22,7 +22,7 @@ Additionally, the SSD package must be installed. [This](https://github.com/TheCa
 ## pip
 To instal those packages using pip, from the root directory run:
 ```
-pip install opencv-python opencv-contrib-python numpy tqdm lxml pandas boto3
+pip install opencv-python opencv-contrib-python numpy tqdm lxml pandas boto3 sortedcontainers
 # Pytorch (with CUDA 10)
 pip install torch torchvision
 # Pytorch (without CUDA)
