@@ -39,7 +39,7 @@ frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 '''---------------------------------------------------------------'''
 
 
-detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.5)
+detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.4)
 tracker = WagonTracker(detector, frame_width // 2)
 
 cv2.namedWindow('annotated', cv2.WINDOW_NORMAL)
@@ -82,6 +82,7 @@ while cap.more():
             cv2.circle(orig_image, (int(center[0]), int(center[1])), 3, (0, 0, 255), 3)
 
     cv2.imshow('annotated', orig_image)
-    if cv2.waitKey(frame_time) & 0xFF == ord('q'):
+    k = cv2.waitKey(frame_time) & 0xFF
+    if k == ord('q') or k == 27:
         break
 cv2.destroyAllWindows()
