@@ -119,7 +119,7 @@ class WagonTracker:
         return boxes[sorted_idxs, :], labels[sorted_idxs]
 
     def _estimate_motion(self, image):
-        self.movement_vector = self.motion_estimator(image) * 1.8
+        self.movement_vector = self.motion_estimator(image)
         self.movement_vector[1] = 0.0
         self.movement_vector[0] = np.clip(self.movement_vector[0], -60.0, 60.0)
 
