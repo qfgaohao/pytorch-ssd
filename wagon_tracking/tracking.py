@@ -91,19 +91,75 @@ class MovementEstimator:
         return global_mov
 
 
+class Restriction:
+    def __call__(self, boxes, labels=None):
+        if len(boxes) == 0:
+            return boxes, labels
+        return self.filter(boxes, labels)
+
+    def filter(self, boxes, labels=None):
+        raise NotImplementedError
+
+
+class TrajectoryProfileRestriction(Restriction):
+    def __init__(self, roi, p_start, p_end=None, distance_threshold=20):
+        self.points = np.empty((2, 2), dtype=np.float)
+        self.points[0, :] = p_start
+        self.points[1, :] = p_end if p_end is not None else (1e6, p_start[1])
+        self.points.sort(axis=0)
+
+        self.roi = np.array(roi, dtype=np.float)
+        x_min, y_min, x_max, y_max = roi
+        self.points[:, 0] = np.clip(self.points[:, 0], x_min, x_max)
+        self.points[:, 1] = np.clip(self.points[:, 1], y_min, y_max)
+
+        b, neg_a = np.diff(self.points, axis=0)[0]
+        c = np.diff(self.points[::-1, 0] * self.points[:, 1])[0]
+        self.a = neg_a
+        self.b = b
+        self.c = c
+
+        self._den = np.sqrt(self.a ** 2 + self.b ** 2)
+
+        self.distance_threshold = distance_threshold
+
+    def _boxes_distances(self, boxes):
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+
+        num = np.abs(self.a * centers[:, 0] + self.b * centers[:, 1] + self.c)
+
+        return num / self._den
+
+    @property
+    def line_points(self):
+        starting_point, ending_point = self.points
+        return starting_point.tolist(), ending_point.tolist()
+
+    def filter(self, boxes, labels=None):
+        filtered_mask = self._boxes_distances(boxes) <= self.distance_threshold
+        boxes = boxes[filtered_mask, :]
+        if labels is not None:
+            labels = labels[filtered_mask]
+        return boxes, labels
+
+
 class WagonTracker:
-    def __init__(self, detector, detection_threshold):
+    def __init__(self, detector, detection_threshold, restrictions=[]):
         self.detector = detector
         self.elements_info = SortedDict()
         self.next_element_id = 0
         self.movement_vector = np.array([0.0, 0.0])
         self.detection_threshold = detection_threshold
+        self.restrictions = restrictions
 
         self.motion_estimator = MovementEstimator(update_interval=3)
 
     def __call__(self, image):
         boxes, labels, _ = self.detector(image)
         boxes, labels = boxes.numpy(), labels.numpy()
+
+        for restriction in self.restrictions:
+            boxes, labels = restriction(boxes, labels)
 
         if len(boxes) != 0:
             boxes, labels = self._sort_detections(boxes, labels)
