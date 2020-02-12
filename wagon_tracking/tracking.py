@@ -103,6 +103,7 @@ class Restriction:
 
 class TrajectoryProfileRestriction(Restriction):
     def __init__(self, roi, p_start, p_end=None, distance_threshold=20):
+        super().__init__()
         self.points = np.empty((2, 2), dtype=np.float)
         self.points[0, :] = p_start
         self.points[1, :] = p_end if p_end is not None else (1e6, p_start[1])
