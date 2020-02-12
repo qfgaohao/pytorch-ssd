@@ -101,6 +101,34 @@ class Restriction:
         raise NotImplementedError
 
 
+class ROIRestriction(Restriction):
+    def __init__(self, roi, area_threshold=0.5):
+        super().__init__()
+        roi = np.array(roi)
+        xmin, ymin = roi[0::2].min(), roi[1::2].min()
+        xmax, ymax = roi[0::2].max(), roi[1::2].max()
+        self.roi = np.array([xmin, ymin, xmax, ymax])
+
+        self.area_threshold = area_threshold
+
+    def filter(self, boxes, labels=None):
+        total_areas = box_utils.area_of(boxes[:, :2], boxes[:, 2:])
+
+        intersections = np.empty_like(boxes)
+        intersections[:, :2] = np.maximum(boxes[:, :2], self.roi[:2])
+        intersections[:, 2:] = np.minimum(boxes[:, 2:], self.roi[2:])
+        inter_areas = box_utils.area_of(intersections[:, :2], intersections[:, 2:])
+
+        percents_areas = inter_areas.astype(np.float) / total_areas.astype(np.float)
+        filtered_mask = percents_areas >= self.area_threshold
+
+        boxes = boxes[filtered_mask, :]
+        if labels is not None:
+            labels = labels[filtered_mask]
+
+        return boxes, labels
+
+
 class TrajectoryProfileRestriction(Restriction):
     def __init__(self, roi, p_start, p_end=None, distance_threshold=20):
         super().__init__()

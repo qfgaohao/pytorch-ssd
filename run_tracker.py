@@ -4,7 +4,11 @@ import sys
 import cv2
 
 from wagon_tracking.detection import WagonDetector
-from wagon_tracking.tracking import WagonTracker, TrajectoryProfileRestriction
+from wagon_tracking.tracking import (
+    WagonTracker,
+    TrajectoryProfileRestriction,
+    ROIRestriction,
+)
 from wagon_tracking.transforms import DistortionRectifier
 from wagon_tracking.utils import get_realpath
 from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
@@ -41,6 +45,7 @@ frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.4)
 restrictions = [
+    ROIRestriction((193, 353, 1672, 755)),
     TrajectoryProfileRestriction(
         (0, 0, frame_width, frame_height), (0, 560), distance_threshold=20
     )
@@ -57,7 +62,7 @@ while cap.more():
     tracking_info = tracker(orig_image)
 
     # Draw the trajectory profile
-    starting_point, ending_point = restrictions[0].line_points
+    starting_point, ending_point = restrictions[1].line_points
     xmin, ymin = (int(e) for e in starting_point)
     xmax, ymax = (int(e) for e in ending_point)
     cv2.line(orig_image, (xmin, ymin), (xmax, ymax), (255, 0, 0), 4)
