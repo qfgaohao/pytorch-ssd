@@ -95,9 +95,16 @@ class Restriction:
     def __call__(self, boxes, labels=None):
         if len(boxes) == 0:
             return boxes, labels
-        return self.filter(boxes, labels)
 
-    def filter(self, boxes, labels=None):
+        filtered_mask = self.filter_mask(boxes, labels)
+
+        boxes = boxes[filtered_mask, :]
+        if labels is not None:
+            labels = labels[filtered_mask]
+
+        return boxes, labels
+
+    def filter_mask(self, boxes, labels=None):
         raise NotImplementedError
 
 
@@ -111,7 +118,7 @@ class ROIRestriction(Restriction):
 
         self.area_threshold = area_threshold
 
-    def filter(self, boxes, labels=None):
+    def filter_mask(self, boxes, labels=None):
         total_areas = box_utils.area_of(boxes[:, :2], boxes[:, 2:])
 
         intersections = np.empty_like(boxes)
@@ -120,13 +127,8 @@ class ROIRestriction(Restriction):
         inter_areas = box_utils.area_of(intersections[:, :2], intersections[:, 2:])
 
         percents_areas = inter_areas.astype(np.float) / total_areas.astype(np.float)
-        filtered_mask = percents_areas >= self.area_threshold
 
-        boxes = boxes[filtered_mask, :]
-        if labels is not None:
-            labels = labels[filtered_mask]
-
-        return boxes, labels
+        return percents_areas >= self.area_threshold
 
 
 class TrajectoryProfileRestriction(Restriction):
@@ -152,24 +154,18 @@ class TrajectoryProfileRestriction(Restriction):
 
         self.distance_threshold = distance_threshold
 
-    def _boxes_distances(self, boxes):
-        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
-
-        num = np.abs(self.a * centers[:, 0] + self.b * centers[:, 1] + self.c)
-
-        return num / self._den
-
     @property
     def line_points(self):
         starting_point, ending_point = self.points
         return starting_point.tolist(), ending_point.tolist()
 
-    def filter(self, boxes, labels=None):
-        filtered_mask = self._boxes_distances(boxes) <= self.distance_threshold
-        boxes = boxes[filtered_mask, :]
-        if labels is not None:
-            labels = labels[filtered_mask]
-        return boxes, labels
+    def filter_mask(self, boxes, labels=None):
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+
+        num = np.abs(self.a * centers[:, 0] + self.b * centers[:, 1] + self.c)
+
+        boxes_distances = num / self._den
+        return boxes_distances <= self.distance_threshold
 
 
 class WagonTracker:
