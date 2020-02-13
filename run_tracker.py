@@ -4,11 +4,8 @@ import sys
 import cv2
 
 from wagon_tracking.detection import WagonDetector
-from wagon_tracking.tracking import (
-    WagonTracker,
-    TrajectoryProfileRestriction,
-    ROIRestriction,
-)
+from wagon_tracking.tracking import WagonTracker
+from wagon_tracking.restrictions import TrajectoryProfileRestriction, ROIRestriction
 from wagon_tracking.transforms import DistortionRectifier
 from wagon_tracking.utils import get_realpath
 from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
