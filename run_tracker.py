@@ -45,10 +45,10 @@ frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.4)
 restrictions = [
-    ROIRestriction((193, 353, 1672, 755)),
+    ROIRestriction((302, 273, 1579, 796)),
     TrajectoryProfileRestriction(
         (0, 0, frame_width, frame_height), (0, 560), distance_threshold=20
-    )
+    ),
 ]
 tracker = WagonTracker(detector, frame_width // 2, restrictions=restrictions)
 
@@ -60,6 +60,10 @@ while cap.more():
         continue
 
     tracking_info = tracker(orig_image)
+
+    # Draw the ROI
+    x1, y1, x2, y2 = restrictions[0].roi.tolist()
+    cv2.rectangle(orig_image, (x1, y1), (x2, y2), (0, 255, 0), 4)
 
     # Draw the trajectory profile
     starting_point, ending_point = restrictions[1].line_points
