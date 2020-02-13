@@ -9,7 +9,7 @@ import vision.utils.box_utils_numpy as box_utils
 from wagon_tracking.transforms import ImageDownscaleTransform
 
 
-class MovementEstimator:
+class OpticalMovementEstimator:
     def __init__(self, update_interval=5, frame_downscale_factor=None):
         self.update_interval = update_interval
         self.frame_count = 0
@@ -91,16 +91,30 @@ class MovementEstimator:
         return global_mov
 
 
+class BoxesMovementEstimator:
+    def __init__(self):
+        self.movement = np.array([0, 0])
+
+    def __call__(self, last_positions, new_positions):
+        last_centers = (last_positions[:, :2] + last_positions[:, 2:]) / 2
+        new_centers = (new_positions[:, :2] + new_positions[:, 2:]) / 2
+
+        move_vectors = new_centers - last_centers
+        return move_vectors.mean(axis=0)
+
+
 class WagonTracker:
     def __init__(self, detector, detection_threshold, restrictions=[]):
         self.detector = detector
         self.elements_info = SortedDict()
         self.next_element_id = 0
-        self.movement_vector = np.array([0.0, 0.0])
+        self.optical_movement = np.array([0.0, 0.0])
+        self.boxes_movement = np.array([0.0, 0.0])
         self.detection_threshold = detection_threshold
         self.restrictions = restrictions
 
-        self.motion_estimator = MovementEstimator(update_interval=3)
+        self.optical_motion_estimator = OpticalMovementEstimator(update_interval=3)
+        self.boxes_motion_estimator = BoxesMovementEstimator()
 
     def __call__(self, image):
         boxes, labels, _ = self.detector(image)
@@ -112,7 +126,7 @@ class WagonTracker:
         if len(boxes) != 0:
             boxes, labels = self._sort_detections(boxes, labels)
 
-        self._estimate_motion(image)
+        self._estimate_optical_motion(image)
 
         self._update_tracking(boxes, labels)
 
@@ -122,10 +136,34 @@ class WagonTracker:
         sorted_idxs = np.argsort(boxes[:, 0], axis=0)
         return boxes[sorted_idxs, :], labels[sorted_idxs]
 
-    def _estimate_motion(self, image):
-        self.movement_vector = self.motion_estimator(image)
-        self.movement_vector[1] = 0.0
-        self.movement_vector[0] = np.clip(self.movement_vector[0], -60.0, 60.0)
+    def _estimate_optical_motion(self, image):
+        self.optical_movement = self.optical_motion_estimator(image)
+        self.optical_movement[1] = 0.0
+        self.optical_movement[0] = np.clip(self.optical_movement[0], -60.0, 60.0)
+
+    def _estimate_boxes_motion(self, updated_elements_info):
+        last_positions = []
+        new_positions = []
+        for key in updated_elements_info.keys():
+            last_positions.append(self.elements_info[key][0])
+            new_positions.append(updated_elements_info[key][0])
+
+        if len(last_positions) == 0 or len(new_positions) == 0:
+            if (self.boxes_movement == 0).all():
+                self.boxes_movement = self.optical_movement
+            else:
+                self.boxes_movement = (self.optical_movement + self.boxes_movement) / 2
+            return
+
+        last_positions = np.asarray(last_positions)
+        new_positions = np.asarray(new_positions)
+        boxes_movement = self.boxes_motion_estimator(last_positions, new_positions)
+        boxes_movement[1] = 0.0
+        boxes_movement[0] = np.clip(boxes_movement[0], -60.0, 60.0)
+
+        if np.linalg.norm(boxes_movement) < 5:
+            boxes_movement = np.zeros_like(boxes_movement)
+        self.boxes_movement = boxes_movement
 
     def _update_tracking(self, boxes, labels):
         if len(self.elements_info) == 0 and len(boxes) > 0:
@@ -135,6 +173,8 @@ class WagonTracker:
         updated_elements_info, remaining_elements_info = self._update_elements(
             boxes, labels
         )
+
+        self._estimate_boxes_motion(updated_elements_info)
 
         notfound_elements_info = self._update_notfound_elements(updated_elements_info)
         updated_elements_info.update(notfound_elements_info)
@@ -188,8 +228,8 @@ class WagonTracker:
             search_labels = labels[search_mask]
             search_idxs = np.arange(len(boxes))[search_mask]
 
-            t_box[2:] += self.movement_vector
-            t_box[:2] += self.movement_vector
+            t_box[2:] += self.optical_movement
+            t_box[:2] += self.optical_movement
             ious = box_utils.iou_of(t_box, search_boxes)
             n_box_idx = np.argmax(ious)
 
@@ -211,9 +251,8 @@ class WagonTracker:
         for t_id, (t_box, t_lbl) in self.elements_info.items():
             if t_id not in u_ids:
                 updated_box = np.copy(t_box)
-                if np.linalg.norm(self.movement_vector) > 5:
-                    updated_box[2:] = t_box[2:] + self.movement_vector
-                    updated_box[:2] = t_box[:2] + self.movement_vector
+                updated_box[2:] = t_box[2:] + self.boxes_movement
+                updated_box[:2] = t_box[:2] + self.boxes_movement
                 notfound_elements_info[t_id] = (updated_box, t_lbl)
 
         return notfound_elements_info
