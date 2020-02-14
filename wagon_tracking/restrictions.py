@@ -4,11 +4,11 @@ from vision.utils import box_utils_numpy as box_utils
 
 
 class Restriction:
-    def __call__(self, boxes, labels=None):
+    def __call__(self, boxes, labels=None, tracking_info=None):
         if len(boxes) == 0:
             return boxes, labels
 
-        filtered_mask = self.filter_mask(boxes, labels)
+        filtered_mask = self.filter_mask(boxes, labels, tracking_info)
 
         boxes = boxes[filtered_mask, :]
         if labels is not None:
@@ -16,7 +16,7 @@ class Restriction:
 
         return boxes, labels
 
-    def filter_mask(self, boxes, labels=None):
+    def filter_mask(self, boxes, labels=None, tracking_info=None):
         raise NotImplementedError
 
 
@@ -30,7 +30,7 @@ class ROIRestriction(Restriction):
 
         self.area_threshold = area_threshold
 
-    def filter_mask(self, boxes, labels=None):
+    def filter_mask(self, boxes, labels=None, tracking_info=None):
         total_areas = box_utils.area_of(boxes[:, :2], boxes[:, 2:])
 
         intersections = np.empty_like(boxes)
@@ -71,10 +71,58 @@ class TrajectoryProfileRestriction(Restriction):
         starting_point, ending_point = self.points
         return starting_point.tolist(), ending_point.tolist()
 
-    def filter_mask(self, boxes, labels=None):
+    def filter_mask(self, boxes, labels=None, tracking_info=None):
         centers = (boxes[:, :2] + boxes[:, 2:]) / 2
 
         num = np.abs(self.a * centers[:, 0] + self.b * centers[:, 1] + self.c)
 
         boxes_distances = num / self._den
         return boxes_distances <= self.distance_threshold
+
+
+class DetectionDistanceRestriction(Restriction):
+    def __init__(self, intrawagon_range, interwagon_range):
+        super().__init__()
+        self.intrawagon_range = tuple(np.sort(intrawagon_range))
+        self.interwagon_range = tuple(np.sort(interwagon_range))
+        self.next_class = None
+
+    def filter_mask(self, boxes, labels=None, tracking_info=None):
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+
+        last_key = np.sort(tuple(tracking_info.keys()))[-1]
+        last_element = tracking_info[last_key][0]
+        last_center = (last_element[:2] + last_element[2:]) / 2
+
+        mask = np.zeros((len(boxes),), dtype=bool)
+        for c_idx, center in enumerate(centers):
+            if center[0] <= last_center[0]:
+                continue
+
+            length = np.linalg.norm(center - last_center)
+            length_class = self._classify_length(length)
+
+            last_center = center
+
+            if length_class is None:
+                continue
+
+            elif self.next_class is None or length_class == self.next_class:
+                mask[c_idx] = True
+                self.next_class = self._get_next_class(length_class)
+
+        return mask
+
+    def _classify_length(self, length):
+        if self.intrawagon_range[0] <= length <= self.intrawagon_range[1]:
+            return 0
+        elif self.interwagon_range[0] <= length <= self.interwagon_range[1]:
+            return 1
+        else:
+            return None
+
+    def _get_next_class(self, length_class):
+        if length_class == 0:
+            return 1
+
+        return 0
