@@ -86,7 +86,7 @@ class OpticalMovementEstimator:
 
         global_mov = global_mov / n_mov_vectors if n_mov_vectors else global_mov
         if self.downscale_t:
-            global_mov *= self.downscale_t.factor
+            global_mov *= self.downscale_t.factor ** 2
 
         return global_mov
 
@@ -104,7 +104,14 @@ class BoxesMovementEstimator:
 
 
 class WagonTracker:
-    def __init__(self, detector, detection_threshold, restrictions=[]):
+    def __init__(
+        self,
+        detector,
+        detection_threshold,
+        video_fps=30,
+        target_fps=30,
+        restrictions=[],
+    ):
         self.detector = detector
         self.elements_info = SortedDict()
         self.next_element_id = 0
@@ -116,12 +123,13 @@ class WagonTracker:
         self.optical_motion_estimator = OpticalMovementEstimator(update_interval=3)
         self.boxes_motion_estimator = BoxesMovementEstimator()
 
+        self.video_fps = video_fps
+        self.target_fps = target_fps
+        self.fps_ratio = self.target_fps / self.video_fps
+
     def __call__(self, image):
         boxes, labels, _ = self.detector(image)
         boxes, labels = boxes.numpy(), labels.numpy()
-
-        for restriction in self.restrictions:
-            boxes, labels = restriction(boxes, labels)
 
         if len(boxes) != 0:
             boxes, labels = self._sort_detections(boxes, labels)
@@ -137,9 +145,10 @@ class WagonTracker:
         return boxes[sorted_idxs, :], labels[sorted_idxs]
 
     def _estimate_optical_motion(self, image):
-        self.optical_movement = self.optical_motion_estimator(image)
+        self.optical_movement = self.optical_motion_estimator(image).astype(np.float)
+        self.optical_movement *= self.fps_ratio
         self.optical_movement[1] = 0.0
-        self.optical_movement[0] = np.clip(self.optical_movement[0], -60.0, 60.0)
+        self.optical_movement[0] = np.clip(self.optical_movement[0], -45.0, 45.0)
 
     def _estimate_boxes_motion(self, updated_elements_info):
         last_positions = []
@@ -149,21 +158,19 @@ class WagonTracker:
             new_positions.append(updated_elements_info[key][0])
 
         if len(last_positions) == 0 or len(new_positions) == 0:
-            if (self.boxes_movement == 0).all():
+            if (self.optical_movement != 0).any() and (self.boxes_movement == 0).all():
                 self.boxes_movement = self.optical_movement
-            else:
-                self.boxes_movement = (self.optical_movement + self.boxes_movement) / 2
             return
 
         last_positions = np.asarray(last_positions)
         new_positions = np.asarray(new_positions)
         boxes_movement = self.boxes_motion_estimator(last_positions, new_positions)
         boxes_movement[1] = 0.0
-        boxes_movement[0] = np.clip(boxes_movement[0], -60.0, 60.0)
+        boxes_movement[0] = np.clip(boxes_movement[0], -45.0, 45.0)
 
-        if np.linalg.norm(boxes_movement) < 5:
+        if np.linalg.norm(boxes_movement) < 3:
             boxes_movement = np.zeros_like(boxes_movement)
-        self.boxes_movement = boxes_movement
+        self.boxes_movement = (boxes_movement + self.boxes_movement) / 2
 
     def _update_tracking(self, boxes, labels):
         if len(self.elements_info) == 0 and len(boxes) > 0:
@@ -178,6 +185,11 @@ class WagonTracker:
 
         notfound_elements_info = self._update_notfound_elements(updated_elements_info)
         updated_elements_info.update(notfound_elements_info)
+
+        for restriction in self.restrictions:
+            remaining_elements_info = restriction(
+                *remaining_elements_info, updated_elements_info
+            )
 
         new_elements_info = self._get_new_elements_info(
             remaining_elements_info, updated_elements_info
@@ -228,6 +240,7 @@ class WagonTracker:
             search_labels = labels[search_mask]
             search_idxs = np.arange(len(boxes))[search_mask]
 
+            t_box = t_box.copy()
             t_box[2:] += self.optical_movement
             t_box[:2] += self.optical_movement
             ious = box_utils.iou_of(t_box, search_boxes)
