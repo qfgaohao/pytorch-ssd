@@ -290,31 +290,11 @@ class WagonTracker:
         if len(boxes) == 0:
             return {}
 
-        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
-
-        visible_left, visible_right = self._get_nvisible_elements(updated_elements_info)
-
-        new_elements_info = {}
-
-        if visible_left < 2:
-            # Elements in the left side of the threshold line.
-            left_elements_info = {
-                id + self.next_element_id: (box, lbl)
-                for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
-                if cen[0] < self.detection_threshold and visible_left + id < 2
-            }
-            self.next_element_id += len(left_elements_info)
-            new_elements_info.update(left_elements_info)
-
-        if visible_right < 2:
-            # Elements in the right side of the threshold line.
-            right_elements_info = {
-                id + self.next_element_id: (box, lbl)
-                for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
-                if cen[0] >= self.detection_threshold and visible_right + id < 2
-            }
-            self.next_element_id += len(right_elements_info)
-            new_elements_info.update(right_elements_info)
+        new_elements_info = {
+            id + self.next_element_id: (box, lbl)
+            for id, (box, lbl) in enumerate(zip(boxes, labels))
+        }
+        self.next_element_id += len(new_elements_info)
 
         return new_elements_info
 
