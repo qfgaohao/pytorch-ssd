@@ -103,7 +103,32 @@ class BoxesMovementEstimator:
         return move_vectors.mean(axis=0)
 
 
-class WagonTracker:
+class Tracker:
+    def __init__(self, detector):
+        self.detector = detector
+        self.elements_info = SortedDict()
+        self.next_element_id = 0
+
+    def __call__(self, image):
+        boxes, labels, _ = self.detector(image)
+        boxes, labels = boxes.numpy(), labels.numpy()
+
+        if len(boxes) != 0:
+            boxes, labels = self._sort_detections(boxes, labels)
+
+        self._update_tracking(boxes, labels)
+
+        return deepcopy(self.elements_info)
+
+    def _sort_detections(self, boxes, labels):
+        sorted_idxs = np.argsort(boxes[:, 0], axis=0)
+        return boxes[sorted_idxs, :], labels[sorted_idxs]
+
+    def _update_tracking(self, boxes, labels):
+        raise NotImplementedError
+
+
+class WagonTracker(Tracker):
     def __init__(
         self,
         detector,
@@ -112,9 +137,7 @@ class WagonTracker:
         target_fps=30,
         restrictions=[],
     ):
-        self.detector = detector
-        self.elements_info = SortedDict()
-        self.next_element_id = 0
+        super().__init__(detector)
         self.optical_movement = np.array([0.0, 0.0])
         self.boxes_movement = np.array([0.0, 0.0])
         self.detection_threshold = detection_threshold
@@ -128,21 +151,8 @@ class WagonTracker:
         self.fps_ratio = self.target_fps / self.video_fps
 
     def __call__(self, image):
-        boxes, labels, _ = self.detector(image)
-        boxes, labels = boxes.numpy(), labels.numpy()
-
-        if len(boxes) != 0:
-            boxes, labels = self._sort_detections(boxes, labels)
-
         self._estimate_optical_motion(image)
-
-        self._update_tracking(boxes, labels)
-
-        return deepcopy(self.elements_info)
-
-    def _sort_detections(self, boxes, labels):
-        sorted_idxs = np.argsort(boxes[:, 0], axis=0)
-        return boxes[sorted_idxs, :], labels[sorted_idxs]
+        return super().__call__(image)
 
     def _estimate_optical_motion(self, image):
         self.optical_movement = self.optical_motion_estimator(image).astype(np.float)
@@ -303,26 +313,12 @@ class WagonTracker:
         return elements_info
 
 
-class PureDetectionTracker:
+class PureDetectionTracker(Tracker):
     def __init__(self, detector):
-        self.detector = detector
-        self.elements_info = SortedDict()
-        self.next_element_id = 0
+        super().__init__(detector)
 
     def __call__(self, image):
-        boxes, labels, _ = self.detector(image)
-        boxes, labels = boxes.numpy(), labels.numpy()
-
-        if len(boxes) != 0:
-            boxes, labels = self._sort_detections(boxes, labels)
-
-        self._update_tracking(boxes, labels)
-
-        return deepcopy(self.elements_info)
-
-    def _sort_detections(self, boxes, labels):
-        sorted_idxs = np.argsort(boxes[:, 0], axis=0)
-        return boxes[sorted_idxs, :], labels[sorted_idxs]
+        return super().__call__(image)
 
     def _update_tracking(self, boxes, labels):
         updated_elements_info, remaining_elements_info = self._update_elements(
