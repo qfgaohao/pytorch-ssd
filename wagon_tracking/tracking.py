@@ -205,24 +205,9 @@ class WagonTracker:
         self.elements_info = updated_elements_info
 
     def _init_elements_info(self, boxes, labels):
-        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
-
-        # Elements in the left side of the threshold line.
         self.elements_info = {
-            id: (box, lbl)
-            for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
-            if cen[0] < self.detection_threshold and id < 2
+            id: (box, lbl) for id, (box, lbl) in enumerate(zip(boxes, labels))
         }
-
-        # Elements in the right side of the threshold line.
-        self.next_element_id = len(self.elements_info)
-        self.elements_info.update(
-            {
-                id + self.next_element_id: (box, lbl)
-                for id, (box, lbl, cen) in enumerate(zip(boxes, labels, centers))
-                if cen[0] >= self.detection_threshold and id < 2
-            }
-        )
         self.next_element_id = len(self.elements_info)
 
     def _update_elements(self, boxes, labels):
@@ -316,3 +301,83 @@ class WagonTracker:
                 elements_info[next_key] = tmp
 
         return elements_info
+
+
+class PureDetectionTracker:
+    def __init__(self, detector):
+        self.detector = detector
+        self.elements_info = SortedDict()
+        self.next_element_id = 0
+
+    def __call__(self, image):
+        boxes, labels, _ = self.detector(image)
+        boxes, labels = boxes.numpy(), labels.numpy()
+
+        if len(boxes) != 0:
+            boxes, labels = self._sort_detections(boxes, labels)
+
+        self._update_tracking(boxes, labels)
+
+        return deepcopy(self.elements_info)
+
+    def _sort_detections(self, boxes, labels):
+        sorted_idxs = np.argsort(boxes[:, 0], axis=0)
+        return boxes[sorted_idxs, :], labels[sorted_idxs]
+
+    def _update_tracking(self, boxes, labels):
+        updated_elements_info, remaining_elements_info = self._update_elements(
+            boxes, labels
+        )
+
+        new_elements_info = self._get_new_elements_info(
+            remaining_elements_info, updated_elements_info
+        )
+
+        if len(new_elements_info) > 0:
+            updated_elements_info.update(new_elements_info)
+
+        self.elements_info = updated_elements_info
+
+    def _update_elements(self, boxes, labels):
+        updated_elements_info = {}
+
+        for t_id, (t_box, t_lbl) in self.elements_info.items():
+            if len(boxes) == 0:
+                break
+
+            search_mask = labels == t_lbl
+            if search_mask.sum() == 0:
+                continue
+
+            search_boxes = boxes[search_mask, :]
+            search_labels = labels[search_mask]
+            search_idxs = np.arange(len(boxes))[search_mask]
+
+            ious = box_utils.iou_of(t_box, search_boxes)
+            n_box_idx = np.argmax(ious)
+
+            if ious[n_box_idx] > 0.1:
+                updated_elements_info[t_id] = (
+                    search_boxes[n_box_idx],
+                    search_labels[n_box_idx],
+                )
+
+                boxes = np.delete(boxes, (search_idxs[n_box_idx]), axis=0)
+                labels = np.delete(labels, (search_idxs[n_box_idx]), axis=0)
+
+        return updated_elements_info, (boxes, labels)
+
+    def _get_new_elements_info(self, remaining_elements_info, updated_elements_info):
+        (boxes, labels) = remaining_elements_info
+
+        if len(boxes) == 0:
+            return {}
+
+        new_elements_info = {
+            id + self.next_element_id: (box, lbl)
+            for id, (box, lbl) in enumerate(zip(boxes, labels))
+        }
+        self.next_element_id += len(new_elements_info)
+        print(self.next_element_id)
+
+        return new_elements_info
