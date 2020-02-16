@@ -127,6 +127,21 @@ class Tracker:
     def _update_tracking(self, boxes, labels):
         raise NotImplementedError
 
+    def _get_new_elements_info(self, remaining_elements_info, updated_elements_info):
+        (boxes, labels) = remaining_elements_info
+
+        if len(boxes) == 0:
+            return {}
+
+        new_elements_info = {
+            id + self.next_element_id: (box, lbl)
+            for id, (box, lbl) in enumerate(zip(boxes, labels))
+        }
+        self.next_element_id += len(new_elements_info)
+        print(self.next_element_id)
+
+        return new_elements_info
+
 
 class WagonTracker(Tracker):
     def __init__(
@@ -279,20 +294,6 @@ class WagonTracker(Tracker):
 
         return visible_left, visible_right
 
-    def _get_new_elements_info(self, remaining_elements_info, updated_elements_info):
-        (boxes, labels) = remaining_elements_info
-
-        if len(boxes) == 0:
-            return {}
-
-        new_elements_info = {
-            id + self.next_element_id: (box, lbl)
-            for id, (box, lbl) in enumerate(zip(boxes, labels))
-        }
-        self.next_element_id += len(new_elements_info)
-
-        return new_elements_info
-
     def _check_elements_tracking_info(self, elements_info):
         elements_info = SortedDict(elements_info)
         n_elements = len(elements_info)
@@ -362,18 +363,3 @@ class PureDetectionTracker(Tracker):
                 labels = np.delete(labels, (search_idxs[n_box_idx]), axis=0)
 
         return updated_elements_info, (boxes, labels)
-
-    def _get_new_elements_info(self, remaining_elements_info, updated_elements_info):
-        (boxes, labels) = remaining_elements_info
-
-        if len(boxes) == 0:
-            return {}
-
-        new_elements_info = {
-            id + self.next_element_id: (box, lbl)
-            for id, (box, lbl) in enumerate(zip(boxes, labels))
-        }
-        self.next_element_id += len(new_elements_info)
-        print(self.next_element_id)
-
-        return new_elements_info
