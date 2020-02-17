@@ -17,6 +17,9 @@ if __name__ == '__main__':
         '-o', '--output', type=str, required=True, help='The output video name'
     )
     parser.add_argument(
+        '-f', '--fps-factor', type=int, default=1, help='The video fps factor'
+    )
+    parser.add_argument(
         '--max-chunks',
         type=int,
         required=False,
@@ -72,7 +75,7 @@ if __name__ == '__main__':
     video_stream = VideoFileStream(
         input_video, queue_sz=args.frame_buffer_size, transforms=transforms
     )
-    video_fps = video_stream.get(cv.CAP_PROP_FPS)
+    video_fps = video_stream.get(cv.CAP_PROP_FPS) / args.fps_factor
     video_fourcc = int(video_stream.get(cv.CAP_PROP_FOURCC))
     frame_width = int(video_stream.get(cv.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video_stream.get(cv.CAP_PROP_FRAME_HEIGHT))
@@ -111,6 +114,9 @@ if __name__ == '__main__':
     frames_processed = 0
     while video_stream.more():
         frame = video_stream.read()
+        if args.fps_factor != 1 and frame_count % args.fps_factor != 0:
+            frame_count += 1
+            continue
 
         video_writer.write(frame)
 
@@ -118,11 +124,14 @@ if __name__ == '__main__':
         frames_processed += 1
 
         if frames_per_chunk:
-            print(f'\rchunk {chunk_count} -- Frame {frame_count}', end='')
+            print(
+                f'\rchunk {chunk_count} -- Frame {int(frame_count / args.fps_factor)}',
+                end='',
+            )
         else:
-            print(f'\rFrame {frame_count}', end='')
+            print(f'\rFrame {int(frame_count / args.fps_factor)}', end='')
 
-        if frames_per_chunk and frame_count >= frames_per_chunk:
+        if frames_per_chunk and frame_count / args.fps_factor >= frames_per_chunk:
             chunk_count += 1
             frame_count = 0
 
