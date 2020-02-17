@@ -41,7 +41,7 @@ To run the detector demo, first download one of the pre-trained models.
 
 ## MobileNet V1
 ```
-wget -P models https://storage.googleapis.com/models-thecamilowisk/mobilenet_v1.pth
+wget -P models https://storage.googleapis.com/models-thecamilowisk/mobilenet_v6.pth
 ```
 
 ## VGG16
@@ -51,8 +51,10 @@ wget -P models https://storage.googleapis.com/models-thecamilowisk/vgg16.pth
 
 ## Run the demo script
 ```
-python run_detector.py <net_type> <model_filepath> resources/labels.txt [video_filepath]
+python run_tracker.py <net-type> <model-filepath> resources/labels.txt <video-filepath | device-ip-location> [camera-parameters_file]
 ```
+
+OBS: For 4k vídeo, the camera parameters file should be `resources/camera_parameters.pkl.gz`. For HD vídeo, the file should be `resources/camera_parameters_hd.pkl.gz`.
 
 Run `python run_detector.py --h` for more information.
 
