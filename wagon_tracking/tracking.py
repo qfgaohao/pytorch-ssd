@@ -118,6 +118,7 @@ class Tracker:
 
         self._update_tracking(boxes, labels)
 
+        self.elements_info = SortedDict(self.elements_info)
         return deepcopy(self.elements_info)
 
     def _sort_detections(self, boxes, labels):
@@ -311,3 +312,90 @@ class WagonTracker(Tracker):
                 elements_info[next_key] = tmp
 
         return elements_info
+
+
+class WagonsInfo:
+    def __init__(self, roi, intrawagon_range, interwagon_range, label=None):
+        roi = np.array(roi)
+        xmin, ymin = roi[0::2].min(), roi[1::2].min()
+        xmax, ymax = roi[0::2].max(), roi[1::2].max()
+        self.roi = np.array([xmin, ymin, xmax, ymax])
+
+        self.intrawagon_range = tuple(np.sort(intrawagon_range))
+        self.interwagon_range = tuple(np.sort(interwagon_range))
+        self.label = label
+
+    def __call__(self, tracking_info):
+        if not isinstance(tracking_info, SortedDict):
+            raise TypeError
+
+        if not tracking_info:
+            return {}
+
+        boxes = self._get_elements_boxes(tracking_info)
+
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+        heigths = boxes[:, 3] - boxes[:, 1]
+
+        last_box = None
+        last_center = None
+        last_heigth = None
+
+        wagons = {}
+        next_id = 0
+
+        for box, center, heigth in zip(boxes, centers, heigths):
+            if last_center is None:
+                last_box = box
+                last_center = center
+                last_heigth = heigth
+                continue
+
+            mean_heigth = (heigth + last_heigth) / 2
+            length = np.linalg.norm(center - last_center) / mean_heigth
+            length_class = self._classify_length(length, mean_heigth)
+
+            if length_class is None:
+                continue
+
+            if length_class == 0:
+                wagon_box = self._clip(np.hstack((last_box[:2], box[2:])))
+                wagons[next_id] = wagon_box
+                next_id += 1
+
+            else:
+                end_point = np.array([self.roi[2], box[3]])
+                wagon_box = self._clip(np.hstack((box[:2], end_point)))
+                wagons[next_id] = wagon_box
+
+            last_box = box
+            last_center = center
+            last_heigth = heigth
+
+        return wagons
+
+    def _get_elements_boxes(self, tracking_info):
+        if self.label is not None:
+            boxes = (
+                box for box, lbl in tuple(tracking_info.values()) if lbl == self.label
+            )
+            boxes = np.array(tuple(boxes))
+        else:
+            boxes = (box for box, _ in tuple(tracking_info.values()))
+            boxes = np.array(tuple(boxes))
+
+        return boxes
+
+    def _classify_length(self, length, mean_heigth):
+        if self.intrawagon_range[0] <= length <= self.intrawagon_range[1]:
+            return 0
+        elif self.interwagon_range[0] <= length <= self.interwagon_range[1]:
+            return 1
+        else:
+            return None
+
+    def _clip(self, box):
+        box = box.copy()
+        box[0::2] = np.clip(box[0::2], self.roi[0], self.roi[2])
+        box[1::2] = np.clip(box[1::2], self.roi[1], self.roi[3])
+        return box
