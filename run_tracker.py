@@ -40,7 +40,7 @@ if os.path.exists(video_path):
 else:
     cap = VideoLiveStream(video_path, transforms=transform)  # capture from camera
 frame_time = int(1 / cap.get(cv2.CAP_PROP_FPS) * 1000)
-# cap.stream.set(cv2.CAP_PROP_POS_MSEC, 982000)
+cap.stream.set(cv2.CAP_PROP_POS_MSEC, 150000)
 cap.start()
 
 '''-------------------------- Test code --------------------------'''
@@ -55,7 +55,7 @@ restrictions = [
     TrajectoryProfileRestriction(
         (0, 0, frame_width, frame_height), (0, frame_height // 2), distance_threshold=20
     ),
-    DetectionDistanceRestriction((1100, 1600), (200, 500)),
+    DetectionDistanceRestriction((2.5, 4.8), (0.5, 1.5)),
 ]
 tracker = WagonTracker(
     detector,
@@ -133,7 +133,7 @@ while cap.more():
                 )
                 cv2.putText(
                     orig_image,
-                    str(distance),
+                    str(distance / 349),
                     (int(center[0]), int(center[1]) - 20),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     1,  # font scale

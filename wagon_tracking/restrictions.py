@@ -89,20 +89,24 @@ class DetectionDistanceRestriction(Restriction):
 
     def filter_mask(self, boxes, labels=None, tracking_info=None):
         centers = (boxes[:, :2] + boxes[:, 2:]) / 2
+        heigths = boxes[:, 3] - boxes[:, 1]
 
         last_key = np.sort(tuple(tracking_info.keys()))[-1]
         last_element = tracking_info[last_key][0]
         last_center = (last_element[:2] + last_element[2:]) / 2
+        last_heigth = last_element[3] - last_element[1]
 
         mask = np.zeros((len(boxes),), dtype=bool)
-        for c_idx, center in enumerate(centers):
+        for c_idx, (center, heigth) in enumerate(zip(centers, heigths)):
             if center[0] <= last_center[0]:
                 continue
 
-            length = np.linalg.norm(center - last_center)
-            length_class = self._classify_length(length)
+            mean_heigth = (heigth + last_heigth) / 2
+            length = np.linalg.norm(center - last_center) / mean_heigth
+            length_class = self._classify_length(length, mean_heigth)
 
             last_center = center
+            last_heigth = heigth
 
             if length_class is None:
                 continue
@@ -113,7 +117,7 @@ class DetectionDistanceRestriction(Restriction):
 
         return mask
 
-    def _classify_length(self, length):
+    def _classify_length(self, length, mean_heigth):
         if self.intrawagon_range[0] <= length <= self.intrawagon_range[1]:
             return 0
         elif self.interwagon_range[0] <= length <= self.interwagon_range[1]:
