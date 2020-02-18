@@ -25,8 +25,10 @@ video_path = sys.argv[4]
 camera_parameters = get_realpath('resources/camera_parameters.pkl.gz')
 if len(sys.argv) > 5:
     camera_parameters = get_realpath(sys.argv[5])
+    transform = [DistortionRectifier(camera_parameters)]
+else:
+    transform = []
 
-transform = [DistortionRectifier(camera_parameters)]
 if os.path.exists(video_path):
     cap = VideoFileStream(
         video_path, queue_sz=64, transforms=transform
