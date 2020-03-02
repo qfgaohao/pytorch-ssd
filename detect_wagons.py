@@ -5,14 +5,15 @@ import cv2
 import numpy as np
 
 from vision.utils import Timer
-
+from vision.utils import box_utils_numpy as box_utils
 from wagon_tracking.detection import WagonDetector
+from wagon_tracking.imagewriter import ImageWriter
 from wagon_tracking.restrictions import (
     DetectionDistanceRestriction,
     ROIRestriction,
     TrajectoryProfileRestriction,
 )
-from wagon_tracking.tracking import WagonTracker, WagonsInfo
+from wagon_tracking.tracking import WagonsInfo, WagonTracker
 from wagon_tracking.transforms import DistortionRectifier
 from wagon_tracking.utils import get_realpath
 from wagon_tracking.videostream import VideoFileStream, VideoLiveStream
@@ -47,6 +48,9 @@ frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 '''---------------------------------------------------------------'''
 
+writer = ImageWriter(video_path, 128, '/home/camilo/tests')
+writer.start()
+
 
 detector = WagonDetector(net_type, label_path, model_path, prob_threshold=0.4)
 restrictions = [
@@ -71,43 +75,52 @@ cv2.namedWindow('annotated', cv2.WINDOW_NORMAL)
 
 while cap.more():
     timer.start()
-    orig_image = cap.read()
-    if orig_image is None:
+    original_img = cap.read()
+    if original_img is None:
         continue
 
-    tracking_info = tracker(orig_image)
+    tracking_info = tracker(original_img)
     wagons = wagoninfo(tracking_info)
+
+    img_copy = original_img.copy()
 
     # Draw the ROI
     x1, y1, x2, y2 = restrictions[0].roi.tolist()
-    cv2.rectangle(orig_image, (x1, y1), (x2, y2), (0, 255, 0), 4)
+    cv2.rectangle(img_copy, (x1, y1), (x2, y2), (0, 255, 0), 4)
 
     # Draw the trajectory profile
     starting_point, ending_point = restrictions[1].line_points
     xmin, ymin = (int(e) for e in starting_point)
     xmax, ymax = (int(e) for e in ending_point)
-    cv2.line(orig_image, (xmin, ymin), (xmax, ymax), (255, 0, 0), 4)
+    cv2.line(img_copy, (xmin, ymin), (xmax, ymax), (255, 0, 0), 4)
 
     # Draw detection boundary
     cv2.line(
-        orig_image,
+        img_copy,
         (frame_width // 2, 0),
         (frame_width // 2, frame_height),
         (0, 0, 255),
         4,
     )
 
+    boxes = []
+    ids = []
+
     if len(wagons) != 0:
         for id, box in wagons.items():
+            if box_utils.area_of(box[:2], box[2:]) == 0:
+                continue
+
+            boxes.append(box)
+            ids.append(id)
+
             tl, br = tuple(box[:2].astype(np.int)), tuple(box[2:].astype(np.int))
-            cv2.rectangle(
-                orig_image, tl, br, (255, 255, 0), 4
-            )
+            cv2.rectangle(img_copy, tl, br, (255, 255, 0), 4)
 
             center = tuple(((box[2:] + box[:2]) // 2).astype(np.int))
 
             cv2.putText(
-                orig_image,
+                img_copy,
                 str(id),
                 center,
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -116,11 +129,19 @@ while cap.more():
                 2,
             )
 
-    cv2.imshow('annotated', orig_image)
+        writer(original_img, boxes, ids)
+
+    cv2.imshow('annotated', img_copy)
 
     end_time = timer.end() * 1e3
     wait_time = int(np.clip((frame_time - end_time) / 4, 1, frame_time))
     k = cv2.waitKey(wait_time) & 0xFF
     if k == ord('q') or k == 27:
+        cap.stop()
+        writer.stop()
         break
+
+
+cap.stop()
+writer.stop()
 cv2.destroyAllWindows()
