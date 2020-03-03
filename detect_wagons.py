@@ -40,7 +40,6 @@ if os.path.exists(video_path):
 else:
     cap = VideoLiveStream(video_path, transforms=transform)  # capture from camera
 frame_time = int(1 / cap.get(cv2.CAP_PROP_FPS) * 1000)
-cap.stream.set(cv2.CAP_PROP_POS_MSEC, 93900)
 cap.start()
 
 '''-------------------------- Test code --------------------------'''

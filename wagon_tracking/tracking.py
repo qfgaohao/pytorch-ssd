@@ -315,7 +315,9 @@ class WagonTracker(Tracker):
 
 
 class WagonsInfo:
-    def __init__(self, roi, intrawagon_range, interwagon_range, label=None):
+    def __init__(
+        self, roi, intrawagon_range, interwagon_range, wagon_threshold=None, label=None
+    ):
         roi = np.array(roi)
         xmin, ymin = roi[0::2].min(), roi[1::2].min()
         xmax, ymax = roi[0::2].max(), roi[1::2].max()
@@ -324,6 +326,10 @@ class WagonsInfo:
         self.intrawagon_range = tuple(np.sort(intrawagon_range))
         self.interwagon_range = tuple(np.sort(interwagon_range))
         self.label = label
+
+        self.wagon_thresh = wagon_threshold
+        if self.wagon_thresh is None:
+            self.wagon_thresh = (xmin + xmax) / 2
 
     def __call__(self, tracking_info):
         if not isinstance(tracking_info, SortedDict):
@@ -346,6 +352,14 @@ class WagonsInfo:
 
         for box, center, heigth in zip(boxes, centers, heigths):
             if last_center is None:
+                if center[0] > self.wagon_thresh:
+                    start_point = np.array((self.roi[0], box[1]))
+                    wagon_box = self._clip(np.hstack((start_point, box[2:])))
+                else:
+                    end_point = np.array((self.roi[2], box[3]))
+                    wagon_box = self._clip(np.hstack((box[:2], end_point)))
+
+                wagons[next_id] = wagon_box
                 last_box = box
                 last_center = center
                 last_heigth = heigth
@@ -364,7 +378,7 @@ class WagonsInfo:
                 next_id += 1
 
             else:
-                end_point = np.array([self.roi[2], box[3]])
+                end_point = np.array((self.roi[2], box[3]))
                 wagon_box = self._clip(np.hstack((box[:2], end_point)))
                 wagons[next_id] = wagon_box
 
