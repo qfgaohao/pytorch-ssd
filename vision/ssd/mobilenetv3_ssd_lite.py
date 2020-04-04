@@ -26,16 +26,16 @@ def create_mobilenetv3_large_ssd_lite(num_classes, width_mult=1.0, use_batch_nor
 
     source_layer_indexes = [ 16, 20 ]
     extras = ModuleList([
-        Block(3, 960, 512, 256, hswish(), stride=2),
-        Block(3, 512, 256, 128, hswish(), stride=2),
-        Block(3, 256, 256, 128, hswish(), stride=2),
-        Block(3, 256, 64, 64, hswish(), stride=2)
+        Block(3, 960, 256, 512, hswish(), None, stride=2),
+        Block(3, 512, 128, 256, hswish(), None, stride=2),
+        Block(3, 256, 128, 256, hswish(), None, stride=2),
+        Block(3, 256, 64, 64, hswish(), None, stride=2)
     ])
 
     regression_headers = ModuleList([
-        SeperableConv2d(in_channels=round(576 * width_mult), out_channels=6 * 4,
+        SeperableConv2d(in_channels=round(112 * width_mult), out_channels=6 * 4,
                         kernel_size=3, padding=1, onnx_compatible=False),
-        SeperableConv2d(in_channels=1280, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
+        SeperableConv2d(in_channels=960, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
         SeperableConv2d(in_channels=512, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
         SeperableConv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
         SeperableConv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
@@ -43,8 +43,8 @@ def create_mobilenetv3_large_ssd_lite(num_classes, width_mult=1.0, use_batch_nor
     ])
 
     classification_headers = ModuleList([
-        SeperableConv2d(in_channels=round(576 * width_mult), out_channels=6 * num_classes, kernel_size=3, padding=1),
-        SeperableConv2d(in_channels=1280, out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=round(112 * width_mult), out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=960, out_channels=6 * num_classes, kernel_size=3, padding=1),
         SeperableConv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1),
         SeperableConv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
         SeperableConv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
@@ -60,16 +60,16 @@ def create_mobilenetv3_small_ssd_lite(num_classes, width_mult=1.0, use_batch_nor
 
     source_layer_indexes = [ 11, 16 ]
     extras = ModuleList([
-        Block(3, 576, 512, 256, hswish(), stride=2),
-        Block(3, 512, 256, 128, hswish(), stride=2),
-        Block(3, 256, 256, 128, hswish(), stride=2),
-        Block(3, 256, 64, 64, hswish(), stride=2)
+        Block(3, 576, 256, 512, hswish(), None, stride=2),
+        Block(3, 512, 128, 256, hswish(), None, stride=2),
+        Block(3, 256, 128, 256, hswish(), None, stride=2),
+        Block(3, 256, 64, 64, hswish(), None, stride=2)
     ])
 
     regression_headers = ModuleList([
-        SeperableConv2d(in_channels=round(576 * width_mult), out_channels=6 * 4,
+        SeperableConv2d(in_channels=round(48 * width_mult), out_channels=6 * 4,
                         kernel_size=3, padding=1, onnx_compatible=False),
-        SeperableConv2d(in_channels=1280, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
+        SeperableConv2d(in_channels=576, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
         SeperableConv2d(in_channels=512, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
         SeperableConv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
         SeperableConv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
@@ -77,8 +77,8 @@ def create_mobilenetv3_small_ssd_lite(num_classes, width_mult=1.0, use_batch_nor
     ])
 
     classification_headers = ModuleList([
-        SeperableConv2d(in_channels=round(576 * width_mult), out_channels=6 * num_classes, kernel_size=3, padding=1),
-        SeperableConv2d(in_channels=1280, out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=round(48 * width_mult), out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=576, out_channels=6 * num_classes, kernel_size=3, padding=1),
         SeperableConv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1),
         SeperableConv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
         SeperableConv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
