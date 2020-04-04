@@ -149,9 +149,15 @@ class MobileNetV3_Large(nn.Module):
 class MobileNetV3_Small(nn.Module):
     def __init__(self, num_classes=1000):
         super(MobileNetV3_Small, self).__init__()
+
+        self.features = []
+
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1, bias=False)
+        self.features.append(self.conv1)
         self.bn1 = nn.BatchNorm2d(16)
+        self.features.append(self.bn1)
         self.hs1 = hswish()
+        self.features.append(self.hs1)
 
         self.bneck = nn.Sequential(
             Block(3, 16, 16, 16, nn.ReLU(inplace=True), SeModule(16), 2),
@@ -167,15 +173,21 @@ class MobileNetV3_Small(nn.Module):
             Block(5, 96, 576, 96, hswish(), SeModule(96), 1),
         )
 
+        self.features.extend([block for block in self.bneck])
 
         self.conv2 = nn.Conv2d(96, 576, kernel_size=1, stride=1, padding=0, bias=False)
+        self.features.append(self.conv2)
         self.bn2 = nn.BatchNorm2d(576)
+        self.features.append(self.bn2)
         self.hs2 = hswish()
+        self.features.append(self.hs2)
         self.linear3 = nn.Linear(576, 1280)
         self.bn3 = nn.BatchNorm1d(1280)
         self.hs3 = hswish()
         self.linear4 = nn.Linear(1280, num_classes)
         self.init_params()
+
+        self.features = nn.Sequential(*self.features)
 
     def init_params(self):
         for m in self.modules():

@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Conv2d, Sequential, ModuleList, BatchNorm2d
 from torch import nn
-from ..nn.mobilenetv3 import MobileNetV3_Large, Block, hswish
+from ..nn.mobilenetv3 import MobileNetV3_Large, MobileNetV3_Small, Block, hswish
 
 from .ssd import SSD
 from .predictor import Predictor
@@ -21,12 +21,46 @@ def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=
     )
 
 
-def create_mobilenetv3_ssd_lite(num_classes, width_mult=1.0, use_batch_norm=True, onnx_compatible=False, is_test=False):
+def create_mobilenetv3_large_ssd_lite(num_classes, width_mult=1.0, use_batch_norm=True, onnx_compatible=False, is_test=False):
     base_net = MobileNetV3_Large().features
 
     source_layer_indexes = [ 16, 20 ]
     extras = ModuleList([
-        Block(3, 1280, 512, 256, hswish(), stride=2),
+        Block(3, 960, 512, 256, hswish(), stride=2),
+        Block(3, 512, 256, 128, hswish(), stride=2),
+        Block(3, 256, 256, 128, hswish(), stride=2),
+        Block(3, 256, 64, 64, hswish(), stride=2)
+    ])
+
+    regression_headers = ModuleList([
+        SeperableConv2d(in_channels=round(576 * width_mult), out_channels=6 * 4,
+                        kernel_size=3, padding=1, onnx_compatible=False),
+        SeperableConv2d(in_channels=1280, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
+        SeperableConv2d(in_channels=512, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
+        SeperableConv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
+        SeperableConv2d(in_channels=256, out_channels=6 * 4, kernel_size=3, padding=1, onnx_compatible=False),
+        Conv2d(in_channels=64, out_channels=6 * 4, kernel_size=1),
+    ])
+
+    classification_headers = ModuleList([
+        SeperableConv2d(in_channels=round(576 * width_mult), out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=1280, out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
+        SeperableConv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
+        Conv2d(in_channels=64, out_channels=6 * num_classes, kernel_size=1),
+    ])
+
+    return SSD(num_classes, base_net, source_layer_indexes,
+               extras, classification_headers, regression_headers, is_test=is_test, config=config)
+
+
+def create_mobilenetv3_small_ssd_lite(num_classes, width_mult=1.0, use_batch_norm=True, onnx_compatible=False, is_test=False):
+    base_net = MobileNetV3_Small().features
+
+    source_layer_indexes = [ 11, 16 ]
+    extras = ModuleList([
+        Block(3, 576, 512, 256, hswish(), stride=2),
         Block(3, 512, 256, 128, hswish(), stride=2),
         Block(3, 256, 256, 128, hswish(), stride=2),
         Block(3, 256, 64, 64, hswish(), stride=2)
