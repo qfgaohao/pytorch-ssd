@@ -14,6 +14,7 @@ from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
 from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite
+from vision.ssd.mobilenetv3_ssd_lite import create_mobilenetv3_ssd_lite
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
@@ -36,7 +37,7 @@ parser.add_argument('--balance_data', action='store_true',
 
 
 parser.add_argument('--net', default="vgg16-ssd",
-                    help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, mb2-ssd-lite or vgg16-ssd.")
+                    help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, mb2-ssd-lite, mb3-ssd-lite or vgg16-ssd.")
 parser.add_argument('--freeze_base_net', action='store_true',
                     help="Freeze base net layers.")
 parser.add_argument('--freeze_net', action='store_true',
@@ -185,6 +186,9 @@ if __name__ == '__main__':
         config = squeezenet_ssd_config
     elif args.net == 'mb2-ssd-lite':
         create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
+        config = mobilenetv1_ssd_config
+    elif args.net == 'mb3-ssd-lite':
+        create_net = lambda num: create_mobilenetv3_ssd_lite(num)
         config = mobilenetv1_ssd_config
     else:
         logging.fatal("The net type is wrong.")
