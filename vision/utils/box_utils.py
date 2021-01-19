@@ -97,6 +97,9 @@ def convert_locations_to_boxes(locations, priors, center_variance,
         boxes:  priors: [[center_x, center_y, h, w]]. All the values
             are relative to the image size.
     """
+    if torch.cuda.is_available():
+        locations = locations.cuda() #explicitly move tensor to cuda; fixes error "RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!"
+    
     # priors can have one dimension less.
     if priors.dim() + 1 == locations.dim():
         priors = priors.unsqueeze(0)
