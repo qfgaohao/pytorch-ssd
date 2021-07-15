@@ -33,7 +33,7 @@ class MultiboxLoss(nn.Module):
             
         To accomodate for images with all 0 labels, change made in box_utils.hard_negative_mining.
 	    Idea is that 0 is considered only in classification loss, not in bbox regression loss.
-		A complete batch should contain atleat one positive label.
+		A batch should contain atleat one positive label.
         """
         num_classes = confidence.size(2)
         with torch.no_grad():
