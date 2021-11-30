@@ -3,7 +3,7 @@ import os
 import logging
 import sys
 import itertools
-
+from torchsummary import summary
 import torch
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
@@ -246,6 +246,7 @@ if __name__ == '__main__':
                             shuffle=False)
     logging.info("Build network.")
     net = create_net(num_classes)
+    summary(net.to("cuda"),(3,config.image_size,config.image_size),device='cuda')
     min_loss = -10000.0
     last_epoch = -1
 
