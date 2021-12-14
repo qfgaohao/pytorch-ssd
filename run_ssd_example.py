@@ -57,6 +57,8 @@ boxes, labels, probs = predictor.predict(image, 10, 0.4)
 
 for i in range(boxes.size(0)):
     box = boxes[i, :]
+    box = box.cpu().detach().numpy()
+    box = box.astype(int)
     cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
     #label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
     label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
