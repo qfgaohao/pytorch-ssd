@@ -17,7 +17,6 @@ def main(filename):
     labels = []
     imgnames = []
     annotations = {}
-
     with open(filename, 'r') as labelfile:
         label_string = ""
         for line in labelfile:
@@ -42,18 +41,22 @@ def main(filename):
     for img in imgnames:
         annote = "Annotations/" + img + '.xml'
         if os.path.isfile(annote):
-            tree = ET.parse(annote)
-            root = tree.getroot()
-            annote_labels = []
-            for labelname in root.findall('*/name'):
-                labelname = labelname.text
-                annote_labels.append(labelname)
-                if labelname in labels:
-                    annotations[labelname].append(img)
-            annotations[img] = annote_labels
+            try:
+                tree = ET.parse(annote)
+                root = tree.getroot()
+                annote_labels = []
+                for labelname in root.findall('*/name'):
+                    labelname = labelname.text
+                    annote_labels.append(labelname)
+                    if labelname in labels:
+                        annotations[labelname].append(img)
+                annotations[img] = annote_labels
+            except:
+                print(annote)
         else:
             print("Missing annotation for ", annote)
             exit() 
+    
 
     # divvy up the images to the different sets
     sampler = imgnames.copy()
@@ -73,7 +76,6 @@ def main(filename):
             train_list.append(elem) 
 
     print("Training set:", len(train_list), "validation set:", len(val_list), "test set:", len(test_list))
-
 
     # create the dataset files
     create_folder("./ImageSets/Main/")

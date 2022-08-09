@@ -132,7 +132,7 @@ class SSD(nn.Module):
         self.regression_headers.apply(_xavier_init_)
 
     def load(self, model):
-        self.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
+        self.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage), strict=False)
 
     def save(self, model_path):
         torch.save(self.state_dict(), model_path)
