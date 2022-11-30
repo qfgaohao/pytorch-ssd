@@ -23,10 +23,10 @@ for image_id, g in r.groupby('ImageID'):
     for row in g.itertuples():
         if row.Prob < threshold:
             continue
-        cv2.rectangle(image, (row.x1, row.y1), (row.x2, row.y2), (255, 255, 0), 4)
+        cv2.rectangle(image, (int(row.x1), int(row.y1)), (int(row.x2), int(row.y2)), (255, 255, 0), 4)
         label = f"{row.Prob:.2f}"
         cv2.putText(image, label,
-                    (row.x1 + 20, row.y1 + 40),
+                    (int(row.x1) + 20, int(row.y1) + 40),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     1,  # font scale
                     (255, 0, 255),
