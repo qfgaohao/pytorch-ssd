@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 
-files = ['trainval.txt', 'test.txt']
+files = ['train.txt', 'val.txt']
 
 for file in files:
     image_ids = list()
