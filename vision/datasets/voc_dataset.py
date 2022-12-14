@@ -50,7 +50,7 @@ class VOCDataset:
             # 'cow', 'diningtable', 'dog', 'horse',
             # 'motorbike', 'person', 'pottedplant',
             # 'sheep', 'sofa', 'train', 'tvmonitor')
-            self.class_names = ('pedestrian', 'cyclist', 'car', 'truck', 'tram', 'tricycle')
+            self.class_names = ('BACKGROUND', 'pedestrian', 'cyclist', 'car', 'truck', 'tram', 'tricycle')
 
         self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
 
