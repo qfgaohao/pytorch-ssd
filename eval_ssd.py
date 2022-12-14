@@ -188,7 +188,7 @@ if __name__ == '__main__':
         ], dim=1))
     results = torch.cat(results)
     for class_index, class_name in enumerate(class_names):
-        if class_index == 0: continue  # ignore background
+        # if class_index == 0: continue  # ignore background
         prediction_path = eval_path / f"det_test_{class_name}.txt"
         with open(prediction_path, "w") as f:
             sub = results[results[:, 1] == class_index, :]
