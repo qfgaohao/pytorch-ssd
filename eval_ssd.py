@@ -202,8 +202,8 @@ if __name__ == '__main__':
     aps = []
     print("\n\nAverage Precision Per-class:")
     for class_index, class_name in enumerate(class_names):
-        if class_index == 0:
-            continue
+        # if class_index == 0:
+        #     continue
         prediction_path = eval_path / f"det_test_{class_name}.txt"
         ap = compute_average_precision_per_class(
             true_case_stat[class_index],
