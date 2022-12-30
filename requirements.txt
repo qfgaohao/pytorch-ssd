@@ -1,0 +1,23 @@
+asn1crypto==0.24.0
+cryptography==2.1.4
+distro==1.8.0
+idna==2.6
+keyring==10.6.0
+keyrings.alt==3.0
+numpy==1.19.5
+opencv-python==4.6.0.66
+packaging==21.3
+pandas==1.1.5
+Pillow==6.2.2
+pycrypto==2.6.1
+PyGObject==3.26.1
+pyparsing==3.0.9
+python-dateutil==2.8.2
+pytz==2022.4
+pyxdg==0.25
+scikit-build==0.15.0
+SecretStorage==2.3.1
+six==1.11.0
+torch @ https://download.pytorch.org/whl/cu100/torch-1.0.0-cp36-cp36m-linux_x86_64.whl
+torchvision==0.2.2
+tqdm==4.19.9
