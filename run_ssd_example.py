@@ -50,22 +50,34 @@ elif net_type == 'sq-ssd-lite':
     predictor = create_squeezenet_ssd_lite_predictor(net, candidate_size=200)
 else:
     predictor = create_vgg_ssd_predictor(net, candidate_size=200)
+    
+    
+    
+for filename in os.listdir(image_path):
+    print("filename", filename)
+    image = cv2.imread(os.path.join(image_path,filename))
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    boxes, labels, probs = predictor.predict(image,10, 0.4)
 
-orig_image = cv2.imread(image_path)
-image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB)
-boxes, labels, probs = predictor.predict(image, 10, 0.4)
+    for i in range(boxes.size(0)):
+        box = boxes[i, :]
+        cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (255, 255, 0), 2)
 
-for i in range(boxes.size(0)):
-    box = boxes[i, :]
-    cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 4)
-    #label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
-    label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
-    cv2.putText(orig_image, label,
-                (box[0] + 20, box[1] + 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,  # font scale
-                (255, 0, 255),
-                2)  # line type
-path = "run_ssd_example_output.jpg"
-cv2.imwrite(path, orig_image)
-print(f"Found {len(probs)} objects. The output image is {path}")
+        #label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
+        label = f"{class_names[labels   [i]]}: {probs[i]:.2f}"
+        cv2.putText(image, label,
+                    (int(box[2]), int(box[3])),
+                    cv2.FONT_HERSHEY_PLAIN,
+                    # font_scale,
+                    0.5,
+                    (255, 0, 255),
+                    1)
+        file_name=random.randint(1,1000)
+    print("filename",file_name)
+    # replace .jpg from filename
+    file_name=filename.split(".")[0].replace(".jpg","")
+    cv2.imwrite("/home/zeys/projects/pytorch-ssd/google_pics_results/" + str(file_name)+".jpg", image)
+
+# print(f"Found {len(probs)} objects. The output image is {path}")
+
+
