@@ -17,19 +17,21 @@ It also has out-of-box support for retraining on Google Open Images dataset.
 5. Pandas
 6. Boto3 if you want to train models on the Google OpenImages Dataset.
 
+## Download models
+
+**Please download the models and put them into the folder "./models". The following sections will need them.** URL: https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing
+
 ## Run the demo
 ### Run the live MobilenetV1 SSD demo
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/mobilenet-v1-ssd-mp-0_675.pth
-wget -P models https://storage.googleapis.com/models-hao/voc-model-labels.txt
+# If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
 python run_ssd_live_demo.py mb1-ssd models/mobilenet-v1-ssd-mp-0_675.pth models/voc-model-labels.txt 
 ```
 ### Run the live demo in Caffe2
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_ssd_caffe2/mobilenet-v1-ssd_init_net.pb
-wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_ssd_caffe2/mobilenet-v1-ssd_predict_net.pb
+# If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
 python run_ssd_live_caffe2.py models/mobilenet-v1-ssd_init_net.pb models/mobilenet-v1-ssd_predict_net.pb models/voc-model-labels.txt 
 ```
 
@@ -38,8 +40,7 @@ You can see a decent speed boost by using Caffe2.
 ### Run the live MobileNetV2 SSD Lite demo
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/mb2-ssd-lite-mp-0_686.pth
-wget -P models https://storage.googleapis.com/models-hao/voc-model-labels.txt
+# If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
 python run_ssd_live_demo.py mb2-ssd-lite models/mb2-ssd-lite-mp-0_686.pth models/voc-model-labels.txt 
 ```
 
@@ -53,7 +54,9 @@ You may notice MobileNetV2 SSD/SSD-Lite is slower than MobileNetV1 SSD/Lite on P
 
 ### Mobilenet V1 SSD
 
-URL: https://storage.googleapis.com/models-hao/mobilenet-v1-ssd-mp-0_675.pth
+If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
+
+Model: mobilenet-v1-ssd-mp-0_675.pth
 
 ```
 Average Precision Per-class:
@@ -83,7 +86,9 @@ Average Precision Across All Classes:0.6755
 
 ### MobileNetV2 SSD-Lite
 
-URL: https://storage.googleapis.com/models-hao/mb2-ssd-lite-mp-0_686.pth
+If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
+
+Model: mb2-ssd-lite-mp-0_686.pth
 
 ```
 Average Precision Per-class:
@@ -113,13 +118,13 @@ Average Precision Across All Classes:0.6860690100560214
 The code to re-produce the model:
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/mb2-imagenet-71_8.pth
+# If you haven't downloaded the models, please download from https://drive.google.com/drive/folders/1pKn-RifvJGWiOx0ZCRLtCXM5GT5lAluu?usp=sharing.
 python train_ssd.py --dataset_type voc  --datasets ~/data/VOC0712/VOC2007 ~/data/VOC0712/VOC2012 --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mb2-ssd-lite --base_net models/mb2-imagenet-71_8.pth  --scheduler cosine --lr 0.01 --t_max 200 --validation_epochs 5 --num_epochs 200
 ```
 
 ### VGG SSD
 
-URL: https://storage.googleapis.com/models-hao/vgg16-ssd-mp-0_7726.pth
+Model: vgg16-ssd-mp-0_7726.pth
 
 
 ```
@@ -156,7 +161,6 @@ python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ -
 ## Training
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/mobilenet_v1_with_relu_69_5.pth
 python train_ssd.py --datasets ~/data/VOC0712/VOC2007/ ~/data/VOC0712/VOC2012/ --validation_dataset ~/data/VOC0712/test/VOC2007/ --net mb1-ssd --base_net models/mobilenet_v1_with_relu_69_5.pth  --batch_size 24 --num_epochs 200 --scheduler cosine --lr 0.01 --t_max 200
 ```
 
@@ -185,8 +189,6 @@ Let's we are building a model to detect guns for security purpose.
 Before you start you can try the demo.
 
 ```bash
-wget -P models https://storage.googleapis.com/models-hao/gun_model_2.21.pth
-wget -P models https://storage.googleapis.com/models-hao/open-images-model-labels.txt
 python run_ssd_example.py mb1-ssd models/gun_model_2.21.pth models/open-images-model-labels.txt ~/Downloads/big.JPG
 ```
 
