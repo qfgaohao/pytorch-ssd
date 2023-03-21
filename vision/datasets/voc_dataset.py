@@ -18,9 +18,9 @@ class VOCDataset:
         self.transform = transform
         self.target_transform = target_transform
         if is_test:
-            image_sets_file = self.root / "ImageSets/Main/test.txt"
+            image_sets_file = self.root / "ImageSets/Main/val.txt"
         else:
-            image_sets_file = self.root / "ImageSets/Main/trainval.txt"
+            image_sets_file = self.root / "ImageSets/Main/train.txt"
         self.ids = VOCDataset._read_image_ids(image_sets_file)
         self.keep_difficult = keep_difficult
 
@@ -44,13 +44,13 @@ class VOCDataset:
 
         else:
             logging.info("No labels file, using default VOC classes.")
-            self.class_names = ('BACKGROUND',
-            'aeroplane', 'bicycle', 'bird', 'boat',
-            'bottle', 'bus', 'car', 'cat', 'chair',
-            'cow', 'diningtable', 'dog', 'horse',
-            'motorbike', 'person', 'pottedplant',
-            'sheep', 'sofa', 'train', 'tvmonitor')
-
+            # self.class_names = ('BACKGROUND',
+            # 'aeroplane', 'bicycle', 'bird', 'boat',
+            # 'bottle', 'bus', 'car', 'cat', 'chair',
+            # 'cow', 'diningtable', 'dog', 'horse',
+            # 'motorbike', 'person', 'pottedplant',
+            # 'sheep', 'sofa', 'train', 'tvmonitor')
+            self.class_names = ('BACKGROUND', 'pedestrian', 'cyclist', 'car', 'truck', 'tram', 'tricycle')
 
         self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
 
