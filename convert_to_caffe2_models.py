@@ -20,12 +20,15 @@ label_path = sys.argv[3]
 
 class_names = [name.strip() for name in open(label_path).readlines()]
 num_classes = len(class_names)
+IMAGE_SIZE=300
 
 if net_type == 'vgg16-ssd':
     net = create_vgg_ssd(len(class_names), is_test=True)
 elif net_type == 'mb1-ssd':
     net = create_mobilenetv1_ssd(len(class_names), is_test=True)
 elif net_type == 'mb1-ssd-lite':
+    from vision.ssd.config.mobilenetv1_ssd_config import image_size
+    IMAGE_SIZE=image_size
     net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
 elif net_type == 'mb2-ssd-lite':
     net = create_mobilenetv2_ssd_lite(len(class_names), is_test=True)
@@ -34,7 +37,11 @@ elif net_type == 'sq-ssd-lite':
 else:
     print("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
     sys.exit(1)
-net.load(model_path)
+
+device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+net.load_state_dict(torch.load(model_path, map_location=device))
+net.to(device)
 net.eval()
 
 model_path = f"models/{net_type}.onnx"
@@ -43,7 +50,7 @@ init_net_txt_path = f"models/{net_type}_init_net.pbtxt"
 predict_net_path = f"models/{net_type}_predict_net.pb"
 predict_net_txt_path = f"models/{net_type}_predict_net.pbtxt"
 
-dummy_input = torch.randn(1, 3, 300, 300)
+dummy_input = torch.randn(1, 3, IMAGE_SIZE, IMAGE_SIZE,dtype=torch.float32, device=device.type)
 torch.onnx.export(net, dummy_input, model_path, verbose=False, output_names=['scores', 'boxes'])
 
 model = onnx.load(model_path)
