@@ -192,9 +192,15 @@ def hard_negative_mining(loss, labels, neg_pos_ratio):
         loss (N, num_priors): the loss for each example.
         labels (N, num_priors): the labels.
         neg_pos_ratio:  the ratio between the negative examples and positive examples.
+    
     """
     pos_mask = labels > 0
     num_pos = pos_mask.long().sum(dim=1, keepdim=True)
+    
+    ## for training with images without any non zero labels
+    ## this will make sure 1*3(neg_pos_ratio) are added in the neg_mask, pos_mask will be empty
+    num_pos = torch.clamp(num_pos, min=1, max=1000000) # 1000000 : a very large number
+
     num_neg = num_pos * neg_pos_ratio
 
     loss[pos_mask] = -math.inf

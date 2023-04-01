@@ -30,6 +30,10 @@ class MultiboxLoss(nn.Module):
             locations (batch_size, num_priors, 4): predicted locations.
             labels (batch_size, num_priors): real labels of all the priors.
             boxes (batch_size, num_priors, 4): real boxes corresponding all the priors.
+            
+        To accomodate for images with all 0 labels, change made in box_utils.hard_negative_mining.
+	    Idea is that 0 is considered only in classification loss, not in bbox regression loss.
+		A batch should contain atleat one positive label.
         """
         num_classes = confidence.size(2)
         with torch.no_grad():
